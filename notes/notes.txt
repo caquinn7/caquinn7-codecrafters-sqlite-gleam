@@ -1,0 +1,182 @@
+The sqlite_schema.rootpage column stores the page number of the root b-tree page for tables and indexes.
+-------------
+
+B-tree Page Header Format
+-------------------------
+Offset	Size	Description
+-------------------------
+0	    1	The one-byte flag at offset 0 indicating the b-tree page type.
+            A value of 2 (0x02) means the page is an interior index b-tree page.
+            A value of 5 (0x05) means the page is an interior table b-tree page.
+            A value of 10 (0x0a) means the page is a leaf index b-tree page.
+            A value of 13 (0x0d) means the page is a leaf table b-tree page.
+            Any other value for the b-tree page type is an error.
+1	    2	The two-byte integer at offset 1 gives the start of the first freeblock on the page,
+            or is zero if there are no freeblocks.
+3	    2	The two-byte integer at offset 3 gives the number of cells on the page.
+5	    2	The two-byte integer at offset 5 designates the start of the cell content area.
+            A zero value for this integer is interpreted as 65536.
+7	    1	The one-byte integer at offset 7 gives the number of fragmented free bytes
+            within the cell content area.
+8	    4	The four-byte page number at offset 8 is the right-most pointer.
+            This value appears in the header of interior b-tree pages only
+            and is omitted from all other pages.
+            (The child page number for the rightmost child page.)
+
+The cell pointer array of a b-tree page immediately follows the b-tree page header.
+Let K be the number of cells on the btree. The cell pointer array consists of K 2-byte integer offsets to the cell contents.
+The cell pointers are arranged in key order with left-most cell (the cell with the smallest key) first
+and the right-most cell (the cell with the largest key) last.
+
+---------------------------------------------------------
+example3.db
+
+root page (b-tree header for sqlite_schema table)
+00000064  05 00 00 00 03 0f f1 00   00 00 00 63     0f fb  0f f6  0f f1
+                                                
+    3 cells
+    cell content offset 0f f1
+    rightmost page 99
+
+    0f fb => 00 00 00 22 1c (page 34 key 28)
+    0f f6 => 00 00 00 23 37 (page 35 key 55)
+    0f f1 => 00 00 00 43 4e (page 67 key 78)
+
+page 34 (34 * 4096 = 139264)
+00022000  0d 0c 87 00 1b 01 1e 00
+
+    (00 1b) 27 cells
+
+    0f 02  0e 83  0e 04  08 8f
+    08 10  07 91  07 12  06 93
+    06 14  05 95  05 16  04 97
+    04 18  03 99  03 1a  02 9b
+    02 1c  01 9d  01 1e  0c 08
+    0b 89  0b 0a  0a 8b  0a 0c
+    09 8d  09 0e  0f 81
+
+    0d 85
+    0d 06  0c 87  00 9f  00 97
+
+    0f 02 (3842)
+    hexdump -C -s 143106 -n 100 example3.db => rowid 29
+    0f 81 (3969)
+    hexdump -C -s 143233 -n 100 example3.db => rowid 55
+
+
+page 35 (35 * 4096 = 143360)
+00023000  0d 00 00 00 01 0f f7 00
+
+page 67 (67 * 4096 = 274432)
+00043000  0d 00 00 00 01 0f f7 00
+
+page 99 (99 * 4096 = 405504)
+00063000  0d 00 00 00 01 0f f7 00
+
+
+
+---------------------------------------------------------
+example4.db
+
+00000064  05 00 00 00 02 0f ea 00  00 00 00 4a  0f ef  0f ea
+
+2 cells
+cell content offset 0f ea
+rightmost page 74
+
+0f ef => 00 00 00 25  22 (page 37 key 34)
+0f ea => 00 00 00 27  42 (page 39 key 66)
+
+page 37 (37 * 4096 = 151552)
+00025000  0d 00 00 00 00 0f f4 00
+
+page 39 (159744)
+00027000  0d 00 00 00 00 0f f4 00
+
+page 74
+0004a000  0d 00 00 00 00 0f f4 00
+
+---------------------------------------------------------
+
+Interior(Table, 4096, 1, [
+    Leaf(Table, 4096, 34),
+    Leaf(Table, 4096, 35),
+    Leaf(Table, 4096, 67),
+    Leaf(Table, 4096, 99),
+])
+
+Interior(Table, 4096, 1, [
+    Leaf(Table, 4096, 37),
+    Leaf(Table, 4096, 39),
+    Leaf(Table, 4096, 74),
+  ])
+
+Interior(Table, 4096, 1, 2, [
+    Leaf(Table, 4096, 37, 34),
+    Leaf(Table, 4096, 39, 32),
+    Leaf(Table, 4096, 74, 34),
+])
+
+
+
+
+
+-------------------------------
+sqlite3 example.db .dbinfo
+database page size:  4096
+write format:        1
+read format:         1
+reserved bytes:      12
+file change counter: 16
+database page count: 5
+freelist page count: 0
+schema cookie:       10
+schema format:       4
+default cache size:  0
+autovacuum top root: 0
+incremental vacuum:  0
+text encoding:       1 (utf8)
+user version:        0
+application id:      0
+software version:    3043002
+number of tables:    2
+number of indexes:   0
+number of triggers:  0
+number of views:     0
+schema size:         147
+data version         2
+-------------------------------
+sqlite3 example4.db .dbinfo                         
+database page size:  4096
+write format:        1
+read format:         1
+reserved bytes:      12
+file change counter: 1
+database page count: 104
+freelist page count: 0
+schema cookie:       100
+schema format:       4
+default cache size:  0
+autovacuum top root: 0
+incremental vacuum:  0
+text encoding:       1 (utf8)
+user version:        0
+application id:      0
+software version:    3043002
+number of tables:    100
+number of indexes:   0
+number of triggers:  0
+number of views:     0
+schema size:         8592
+data version         2
+-------------------------------
+
+
+
+-------------------------------
+Example record payload encoded as varint
+0x81    0x0a
+10000001 00001010
+00000010001010
+138 byte payload
+-------------------------------

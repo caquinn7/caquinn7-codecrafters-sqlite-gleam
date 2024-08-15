@@ -16,6 +16,9 @@ version = "1.0.0"
 gleam_stdlib = "~> 0.34 or ~> 1.0"
 argv = ">= 1.0.2 and < 2.0.0"
 file_streams = ">= 0.4.2 and < 1.0.0"
+temporary = ">= 1.0.0 and < 2.0.0"
+gleam_erlang = ">= 0.25.0 and < 1.0.0"
+gluid = ">= 1.0.0 and < 2.0.0"
 
 [dev-dependencies]
 gleeunit = "~> 1.0"

@@ -1,19 +1,36 @@
-import file_streams/file_stream
+import file_streams/file_stream.{type FileStream, BeginningOfFile}
+import gleam/int
+import gleam/list
+import gleam/option.{Some}
 import page
+import record.{TableRecord, Text}
 
 pub type DbInfo {
   DbInfo(page_size: Int, table_count: Int)
 }
 
-pub fn new(database_file_path: String) -> DbInfo {
-  // Get a file handle to the database file, and skip the first 16 bytes
-  let assert Ok(stream) = file_stream.open_read(database_file_path)
-  let assert Ok(_) = file_stream.read_bytes_exact(stream, 16)
-
-  // The next 2 bytes hold the page size in big-endian format
+pub fn read(stream: FileStream) -> DbInfo {
+  let assert Ok(_) = file_stream.position(stream, BeginningOfFile(16))
   let assert Ok(page_size) = file_stream.read_uint16_be(stream)
 
-  let table_count = page.new(stream, 1, 4096) |> page.count_rows
+  let table_count =
+    stream
+    |> page.read(number: 1, size: 4096)
+    |> page.read_records(stream)
+    |> list.count(fn(rec) {
+      case rec {
+        TableRecord(_, [Some(Text("table")), ..]) -> True
+        _ -> False
+      }
+    })
 
   DbInfo(page_size, table_count)
+}
+
+pub fn to_string(db_info: DbInfo) -> String {
+  "database page size: "
+  <> int.to_string(db_info.page_size)
+  <> "\n"
+  <> "number of tables: "
+  <> int.to_string(db_info.table_count)
 }

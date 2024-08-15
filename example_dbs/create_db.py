@@ -25,11 +25,14 @@ def create_database(db_name, table_count):
         print(f"Deleted existing database file '{db_name}'.")
 
     # Connect to the SQLite database (it will be created if it doesn't exist)
+    script = get_script(table_count)
+    execute_sql(db_name, script)
+
+def execute_sql(db_name, sql):
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
-    script = get_script(table_count)
     try:
-        cursor.executescript(script)
+        cursor.executescript(sql)
     except sqlite3.Error as e:
         print(f"An error occurred: {e}")
 
@@ -40,4 +43,6 @@ if __name__ == "__main__":
     db_name = sys.argv[1]
     table_count = int(sys.argv[2])
     create_database(db_name, table_count)
+
+    
 

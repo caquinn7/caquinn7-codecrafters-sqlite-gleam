@@ -1,4 +1,4 @@
-/** Disk-Space Utilization Report For example4.db
+/** Disk-Space Utilization Report For examples_2/interior_schema.db
 
 Page size in bytes................................ 4096      
 Pages in the whole file (measured)................ 104       

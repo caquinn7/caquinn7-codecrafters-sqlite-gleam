@@ -1,20 +1,20 @@
-import db_info
-import file_streams/file_stream
+import db_info.{type DbInfo}
+import file_streams/file_stream.{type FileStream}
 import gleam/list
 import gleam/option.{Some}
+import gleam/result
 import gleam/string
 import page
 import record.{TableRecord, Text}
+import result_set.{type ResultSet}
+import sql.{type ParseError}
 
-pub fn db_info(database_file_path: String) -> String {
-  let assert Ok(stream) = file_stream.open_read(database_file_path)
+pub fn db_info(stream: FileStream) -> DbInfo {
   stream
   |> db_info.read
-  |> db_info.to_string
 }
 
-pub fn tables(database_file_path: String) -> String {
-  let assert Ok(stream) = file_stream.open_read(database_file_path)
+pub fn tables(stream: FileStream) -> List(String) {
   let db_info = db_info.read(stream)
 
   stream
@@ -27,5 +27,10 @@ pub fn tables(database_file_path: String) -> String {
     }
   })
   |> list.sort(string.compare)
-  |> string.join(" ")
+}
+
+pub fn run_sql(str: String, stream: FileStream) -> Result(ResultSet, ParseError) {
+  str
+  |> sql.statement
+  |> result.map(sql.execute(_, stream))
 }

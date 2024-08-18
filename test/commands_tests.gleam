@@ -1,5 +1,6 @@
 import commands
-import file_streams/file_stream
+import db_info.{DbInfo}
+import file_streams/file_stream.{type FileStream}
 import gleam/bit_array
 import gleam/erlang/atom.{type Atom}
 import gleam/int
@@ -21,27 +22,27 @@ const test_sql_file = "test/resources/test.sql"
 
 pub fn db_info_command_leaf_schema_test() {
   let db_path = generate_db_path()
-  use <- do_with_temp_db(db_path, test_sql_file)
-  db_path
+  use stream <- do_with_temp_db(db_path, test_sql_file)
+  stream
   |> commands.db_info
-  |> should.equal("database page size: 4096\nnumber of tables: 2")
+  |> should.equal(DbInfo(4096, 2))
 }
 
 pub fn db_info_command_interior_schema_test() {
   let db_path = generate_db_path()
   use sql_file <- do_with_sql(generate_interior_schema_sql())
-  use <- do_with_temp_db(db_path, sql_file)
-  db_path
+  use stream <- do_with_temp_db(db_path, sql_file)
+  stream
   |> commands.db_info
-  |> should.equal("database page size: 4096\nnumber of tables: 100")
+  |> should.equal(DbInfo(4096, 100))
 }
 
 pub fn tables_command_test() {
   let db_path = generate_db_path()
-  use <- do_with_temp_db(db_path, test_sql_file)
-  db_path
+  use stream <- do_with_temp_db(db_path, test_sql_file)
+  stream
   |> commands.tables
-  |> should.equal("employees sandwiches")
+  |> should.equal(["employees", "sandwiches"])
 }
 
 fn generate_db_path() {
@@ -72,11 +73,14 @@ fn do_with_sql(sql, do: fn(String) -> a) {
   do(file)
 }
 
-fn do_with_temp_db(db_path, sql_path, do: fn() -> a) {
+fn do_with_temp_db(db_path, sql_path, do: fn(FileStream) -> a) {
   let create_db_cmd =
     atom.create_from_string("sqlite3 " <> db_path <> " < " <> sql_path)
   os_cmd(create_db_cmd) |> io.println_error
-  do()
+
+  let assert Ok(stream) = file_stream.open_read(db_path)
+  do(stream)
+
   os_cmd(atom.create_from_string("rm " <> db_path)) |> io.println_error
 }
 

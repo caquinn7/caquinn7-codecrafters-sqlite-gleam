@@ -56,7 +56,7 @@ pub fn to_string(result_set: ResultSet) -> String {
         None -> "NULL"
       }
     })
-    |> string.join(" ")
+    |> string.join("|")
   }
 
   let ResultSet(rows) = result_set

@@ -68,7 +68,7 @@ pub fn result_set_to_string_single_row_two_col_test() {
   |> result_set.new
   |> should.be_ok
   |> result_set.to_string
-  |> should.equal("col1 col2")
+  |> should.equal("col1|col2")
 }
 
 pub fn result_set_to_string_two_row_two_col_test() {
@@ -79,7 +79,7 @@ pub fn result_set_to_string_two_row_two_col_test() {
   |> result_set.new
   |> should.be_ok
   |> result_set.to_string
-  |> should.equal("row1-col1 row1-col2\nrow2-col1 row2-col2")
+  |> should.equal("row1-col1|row1-col2\nrow2-col1|row2-col2")
 }
 
 pub fn result_set_to_string_null_column_test() {

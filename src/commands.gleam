@@ -5,9 +5,10 @@ import gleam/option.{Some}
 import gleam/result
 import gleam/string
 import page
-import record.{TableRecord, Text}
+import record/record.{TableRecord}
+import record/record_value.{Text}
 import result_set.{type ResultSet}
-import sql.{type ParseError}
+import sql/statement
 
 pub fn db_info(stream: FileStream) -> DbInfo {
   stream
@@ -21,16 +22,17 @@ pub fn tables(stream: FileStream) -> List(String) {
   |> page.read(number: 1, size: db_info.page_size)
   |> page.read_records(stream)
   |> list.filter_map(fn(rec) {
-    case rec {
-      TableRecord(_, [Some(Text("table")), _, Some(Text(name)), ..]) -> Ok(name)
+    let assert TableRecord(vals, _) = rec
+    case vals {
+      [Some(Text("table")), _, Some(Text(name)), ..] -> Ok(name)
       _ -> Error(Nil)
     }
   })
   |> list.sort(string.compare)
 }
 
-pub fn run_sql(str: String, stream: FileStream) -> Result(ResultSet, ParseError) {
+pub fn run_sql(stream: FileStream, str: String) -> Result(ResultSet, Nil) {
   str
-  |> sql.statement
-  |> result.map(sql.execute(_, stream))
+  |> statement.from_string
+  |> result.map(statement.execute(_, stream))
 }

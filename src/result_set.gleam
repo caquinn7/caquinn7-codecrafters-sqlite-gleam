@@ -23,8 +23,13 @@ pub fn new(rows: List(List(Option(String)))) -> Result(ResultSet, Nil) {
 
   let valid_rows =
     rows
-    |> list.take_while(fn(r) { list.length(r) == expected_row_len })
-    |> list.filter_map(row)
+    |> list.take_while(fn(vals) { list.length(vals) == expected_row_len })
+    |> list.filter_map(fn(vals) {
+      case vals {
+        [] -> Error(Nil)
+        _ -> Ok(Row(vals))
+      }
+    })
 
   case list.length(valid_rows) == list.length(rows) {
     True -> Ok(ResultSet(valid_rows))
@@ -32,11 +37,13 @@ pub fn new(rows: List(List(Option(String)))) -> Result(ResultSet, Nil) {
   }
 }
 
-fn row(vals: List(Option(String))) -> Result(Row, Nil) {
-  case vals {
-    [] -> Error(Nil)
-    _ -> Ok(Row(vals))
-  }
+pub fn unwrap(result_set: ResultSet) -> List(List(Option(String))) {
+  let ResultSet(rows) = result_set
+  rows
+  |> list.map(fn(row) {
+    let Row(unwrapped) = row
+    unwrapped
+  })
 }
 
 pub fn to_string(result_set: ResultSet) -> String {

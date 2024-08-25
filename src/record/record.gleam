@@ -3,21 +3,15 @@ import gleam/bit_array
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import page_type.{type PageType, Index, Table}
+import record/record_value.{type RecordValue, Blob, Integer, Text}
 import serial_type.{
   type SerialType, BlobType, IntegerType, Null, One, RealType, TextType, Zero,
 }
 import varint
 
 pub type Record {
-  TableRecord(rowid: Int, values: List(Option(RecordValue)))
+  TableRecord(values: List(Option(RecordValue)), rowid: Int)
   IndexRecord(values: List(Option(RecordValue)))
-}
-
-pub type RecordValue {
-  Integer(Int)
-  Real(Float)
-  Blob(BitArray)
-  Text(String)
 }
 
 pub fn read(stream: FileStream, page_type: PageType) -> Record {
@@ -28,7 +22,7 @@ pub fn read(stream: FileStream, page_type: PageType) -> Record {
       let header_size = varint.read(stream)
       let serial_types = read_header(stream, header_size - 1, [])
       let values = serial_types |> list.map(read_value(stream, _))
-      TableRecord(rowid, values)
+      TableRecord(values, rowid)
     }
   }
 }

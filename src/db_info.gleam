@@ -3,7 +3,8 @@ import gleam/int
 import gleam/list
 import gleam/option.{Some}
 import page
-import record.{TableRecord, Text}
+import record/record.{TableRecord}
+import record/record_value.{Text}
 
 pub type DbInfo {
   DbInfo(page_size: Int, table_count: Int)
@@ -19,7 +20,7 @@ pub fn read(stream: FileStream) -> DbInfo {
     |> page.read_records(stream)
     |> list.count(fn(rec) {
       case rec {
-        TableRecord(_, [Some(Text("table")), ..]) -> True
+        TableRecord([Some(Text("table")), ..], _) -> True
         _ -> False
       }
     })

@@ -19,6 +19,7 @@ file_streams = ">= 0.4.2 and < 1.0.0"
 temporary = ">= 1.0.0 and < 2.0.0"
 gleam_erlang = ">= 0.25.0 and < 1.0.0"
 gluid = ">= 1.0.0 and < 2.0.0"
+nibble = ">= 1.1.1 and < 2.0.0"
 
 [dev-dependencies]
 gleeunit = "~> 1.0"

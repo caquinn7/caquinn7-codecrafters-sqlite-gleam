@@ -2,7 +2,7 @@ import file_streams/file_stream.{type FileStream, BeginningOfFile}
 import gleam/int
 import gleam/list
 import page_type.{type PageType, Index, Table}
-import record.{type Record}
+import record/record.{type Record}
 import varint
 
 pub type Page {

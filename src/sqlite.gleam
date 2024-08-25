@@ -6,7 +6,6 @@ import gleam/io
 import gleam/result
 import gleam/string
 import result_set
-import sql
 
 pub fn main() {
   let args = argv.load().arguments
@@ -26,16 +25,10 @@ pub fn main() {
       |> string.join(" ")
 
     [_, str] -> {
-      str
-      |> commands.run_sql(stream)
+      stream
+      |> commands.run_sql(str)
       |> result.map(result_set.to_string)
-      |> result.map_error(fn(err) {
-        case err {
-          sql.Syntax -> todo
-          sql.NoSuchTable(table) -> todo
-          sql.NoSuchColumn(column) -> todo
-        }
-      })
+      |> result.map_error(fn(_) { "parse error" })
       |> result.unwrap_both
     }
 

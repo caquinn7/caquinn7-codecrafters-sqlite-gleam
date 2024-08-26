@@ -7,11 +7,11 @@ import gleam/int
 import gleam/io
 import gleam/iterator
 import gleam/list
-import gleam/option.{None, Some}
 import gleam/string
 import gleeunit
 import gleeunit/should
 import gluid
+import record/record_value.{Null}
 import result_set
 import temporary
 
@@ -55,7 +55,7 @@ pub fn run_sql_command_select_count_test() {
   |> commands.run_sql("SELECT COUNT(*) FROM employees")
   |> should.be_ok
   |> result_set.unwrap
-  |> should.equal([[Some("10")]])
+  |> should.equal([["10"]])
 }
 
 pub fn run_sql_command_select_value_test() {
@@ -66,16 +66,16 @@ pub fn run_sql_command_select_value_test() {
   |> should.be_ok
   |> result_set.unwrap
   |> should.equal([
-    [Some("John")],
-    [Some("Jane")],
-    [Some("Michael")],
-    [Some("Emily")],
-    [Some("Chris")],
-    [Some("Patricia")],
-    [Some("Robert")],
-    [Some("Linda")],
-    [Some("William")],
-    [Some("Barbara")],
+    ["John"],
+    ["Jane"],
+    ["Michael"],
+    ["Emily"],
+    ["Chris"],
+    ["Patricia"],
+    ["Robert"],
+    ["Linda"],
+    ["William"],
+    ["Barbara"],
   ])
 }
 
@@ -87,16 +87,16 @@ pub fn run_sql_command_select_values_test() {
   |> should.be_ok
   |> result_set.unwrap
   |> should.equal([
-    [Some("Doe"), Some("60000"), Some("0")],
-    [Some("Smith"), Some("65000"), Some("1")],
-    [Some("Johnson"), Some("70000"), Some("0")],
-    [Some("Davis"), Some("72000"), Some("1")],
-    [Some("Brown"), Some("68000"), Some("0")],
-    [Some("Wilson"), Some("75000"), Some("1")],
-    [Some("Taylor"), Some("64000"), Some("0")],
-    [Some("Anderson"), Some("71000"), Some("0")],
-    [Some("Thomas"), Some("69000"), Some("1")],
-    [Some("Martinez"), Some("73000"), Some("0")],
+    ["Doe", "60000", "0"],
+    ["Smith", "65000", "1"],
+    ["Johnson", "70000", "0"],
+    ["Davis", "72000", "1"],
+    ["Brown", "68000", "0"],
+    ["Wilson", "75000", "1"],
+    ["Taylor", "64000", "0"],
+    ["Anderson", "71000", "0"],
+    ["Thomas", "69000", "1"],
+    ["Martinez", "73000", "0"],
   ])
 }
 
@@ -108,10 +108,30 @@ pub fn run_sql_command_select_values_null_value_test() {
   |> should.be_ok
   |> result_set.unwrap
   |> list.find(fn(row) {
-    list.any(row, fn(col) { option.unwrap(col, "") == "Kimchi Grilled Cheese" })
+    list.any(row, fn(col) { col == "Kimchi Grilled Cheese" })
   })
   |> should.be_ok
-  |> should.equal([Some("Kimchi Grilled Cheese"), None])
+  |> should.equal(["Kimchi Grilled Cheese", record_value.to_string(Null)])
+}
+
+pub fn run_sql_command_select_values_with_where_clause_with_str_test() {
+  let db_path = generate_db_path()
+  use stream <- do_with_temp_db(db_path, test_sql_file)
+  stream
+  |> commands.run_sql("SELECT name FROM sandwiches WHERE category = 'Hot'")
+  |> should.be_ok
+  |> result_set.unwrap
+  |> should.equal([["Roast Beef"], ["Tuna Melt"], ["Meatball Sub"]])
+}
+
+pub fn run_sql_command_select_values_with_where_clause_with_int_test() {
+  let db_path = generate_db_path()
+  use stream <- do_with_temp_db(db_path, test_sql_file)
+  stream
+  |> commands.run_sql("SELECT name FROM sandwiches WHERE count = 5")
+  |> should.be_ok
+  |> result_set.unwrap
+  |> should.equal([["Chicken Salad"], ["Kimchi Grilled Cheese"]])
 }
 
 fn generate_db_path() {

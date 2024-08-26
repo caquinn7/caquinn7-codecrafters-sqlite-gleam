@@ -1,7 +1,6 @@
 import db_info.{type DbInfo}
 import file_streams/file_stream.{type FileStream}
 import gleam/list
-import gleam/option.{Some}
 import gleam/result
 import gleam/string
 import page
@@ -24,7 +23,7 @@ pub fn tables(stream: FileStream) -> List(String) {
   |> list.filter_map(fn(rec) {
     let assert TableRecord(vals, _) = rec
     case vals {
-      [Some(Text("table")), _, Some(Text(name)), ..] -> Ok(name)
+      [Text("table"), _, Text(name), ..] -> Ok(name)
       _ -> Error(Nil)
     }
   })

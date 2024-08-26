@@ -1,5 +1,4 @@
 import gleam/list
-import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 
@@ -8,10 +7,10 @@ pub opaque type ResultSet {
 }
 
 type Row {
-  Row(List(Option(String)))
+  Row(List(String))
 }
 
-pub fn new(rows: List(List(Option(String)))) -> Result(ResultSet, Nil) {
+pub fn new(rows: List(List(String))) -> Result(ResultSet, Nil) {
   // no rows should be empty
   // all rows should have the same length
 
@@ -37,7 +36,7 @@ pub fn new(rows: List(List(Option(String)))) -> Result(ResultSet, Nil) {
   }
 }
 
-pub fn unwrap(result_set: ResultSet) -> List(List(Option(String))) {
+pub fn unwrap(result_set: ResultSet) -> List(List(String)) {
   let ResultSet(rows) = result_set
   rows
   |> list.map(fn(row) {
@@ -49,14 +48,7 @@ pub fn unwrap(result_set: ResultSet) -> List(List(Option(String))) {
 pub fn to_string(result_set: ResultSet) -> String {
   let row_to_string = fn(row) {
     let Row(unwrapped) = row
-    unwrapped
-    |> list.map(fn(col) {
-      case col {
-        Some(str) -> str
-        None -> "NULL"
-      }
-    })
-    |> string.join("|")
+    string.join(unwrapped, "|")
   }
 
   let ResultSet(rows) = result_set

@@ -1,17 +1,18 @@
 import file_streams/file_stream.{type FileStream}
 import gleam/bit_array
 import gleam/list
-import gleam/option.{type Option, None, Some}
 import page_type.{type PageType, Index, Table}
-import record/record_value.{type RecordValue, Blob, Integer, Text}
+import record/record_value.{
+  type RecordValue, Blob, Integer, Null as NullValue, Text,
+}
 import serial_type.{
   type SerialType, BlobType, IntegerType, Null, One, RealType, TextType, Zero,
 }
 import varint
 
 pub type Record {
-  TableRecord(values: List(Option(RecordValue)), rowid: Int)
-  IndexRecord(values: List(Option(RecordValue)))
+  TableRecord(values: List(RecordValue), rowid: Int)
+  IndexRecord(values: List(RecordValue))
 }
 
 pub fn read(stream: FileStream, page_type: PageType) -> Record {
@@ -44,29 +45,26 @@ fn read_header(
   }
 }
 
-fn read_value(
-  stream: FileStream,
-  serial_type: SerialType,
-) -> Option(RecordValue) {
+fn read_value(stream: FileStream, serial_type: SerialType) -> RecordValue {
   case serial_type {
-    Null -> None
+    Null -> NullValue
     IntegerType(byte_size) -> {
       let assert Ok(bytes) = file_stream.read_bytes_exact(stream, byte_size)
       let bit_size = byte_size * 8
       let assert <<x:size(bit_size)>> = bytes
-      Some(Integer(x))
+      Integer(x)
     }
     RealType -> todo
-    Zero -> Some(Integer(0))
-    One -> Some(Integer(1))
+    Zero -> Integer(0)
+    One -> Integer(1)
     BlobType(byte_size) -> {
       let assert Ok(bytes) = file_stream.read_bytes_exact(stream, byte_size)
-      Some(Blob(bytes))
+      Blob(bytes)
     }
     TextType(byte_size) -> {
       let assert Ok(bytes) = file_stream.read_bytes_exact(stream, byte_size)
       let assert Ok(str) = bit_array.to_string(bytes)
-      Some(Text(str))
+      Text(str)
     }
   }
 }

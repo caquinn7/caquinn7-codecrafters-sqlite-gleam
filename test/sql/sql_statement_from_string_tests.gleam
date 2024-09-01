@@ -1,8 +1,9 @@
 import gleam/option.{None, Some}
 import gleeunit
 import gleeunit/should
-import sql/statement.{
+import sql/sql_statement.{
   ColumnDefinition, Condition, CreateTable, SelectCount, SelectValues,
+  from_string,
 }
 
 pub fn main() {
@@ -13,21 +14,28 @@ pub fn main() {
 
 pub fn sql_statement_from_string_select_value_test() {
   "SELECT name FROM apples"
-  |> statement.from_string
+  |> from_string
+  |> should.be_ok
+  |> should.equal(SelectValues("apples", ["name"], None))
+}
+
+pub fn sql_statement_from_string_select_value_with_quoted_identifiers_test() {
+  "SELECT \"name\" FROM \"apples\""
+  |> from_string
   |> should.be_ok
   |> should.equal(SelectValues("apples", ["name"], None))
 }
 
 pub fn sql_statement_from_string_select_values_test() {
   "SELECT name, color FROM apples"
-  |> statement.from_string
+  |> from_string
   |> should.be_ok
   |> should.equal(SelectValues("apples", ["name", "color"], None))
 }
 
 pub fn sql_statement_from_string_select_value_with_where_clause_with_str_test() {
   "SELECT name FROM apples WHERE color = 'Yellow'"
-  |> statement.from_string
+  |> from_string
   |> should.be_ok
   |> should.equal(SelectValues(
     "apples",
@@ -38,7 +46,7 @@ pub fn sql_statement_from_string_select_value_with_where_clause_with_str_test() 
 
 pub fn sql_statement_from_string_lowercase_select_value_with_where_clause_with_str_test() {
   "select name from apples where color = 'Yellow'"
-  |> statement.from_string
+  |> from_string
   |> should.be_ok
   |> should.equal(SelectValues(
     "apples",
@@ -49,14 +57,14 @@ pub fn sql_statement_from_string_lowercase_select_value_with_where_clause_with_s
 
 pub fn sql_statement_from_string_select_value_with_where_clause_with_int_test() {
   "SELECT name FROM apples WHERE id = 1"
-  |> statement.from_string
+  |> from_string
   |> should.be_ok
   |> should.equal(SelectValues("apples", ["name"], Some(Condition("id", "1"))))
 }
 
 pub fn sql_statement_from_string_select_value_with_where_clause_with_float_test() {
   "SELECT x FROM y WHERE z = 1.23"
-  |> statement.from_string
+  |> from_string
   |> should.be_ok
   |> should.equal(SelectValues("y", ["x"], Some(Condition("z", "1.23"))))
 }
@@ -65,7 +73,7 @@ pub fn sql_statement_from_string_select_value_with_where_clause_with_float_test(
 
 pub fn sql_statement_from_string_select_count_test() {
   "SELECT COUNT(*) FROM fruit"
-  |> statement.from_string
+  |> from_string
   |> should.be_ok
   |> should.equal(SelectCount("fruit"))
 }
@@ -78,40 +86,59 @@ pub fn sql_statement_from_string_create_table_test() {
     name TEXT,
     is_delicious BOOLEAN
   )"
-  |> statement.from_string
+  |> from_string
   |> should.be_ok
   |> should.equal(
     CreateTable("apples", [
-      ColumnDefinition("id", "integer", True, True),
-      ColumnDefinition("name", "text", False, False),
-      ColumnDefinition("is_delicious", "boolean", False, False),
+      ColumnDefinition("id", "integer", True, True, False),
+      ColumnDefinition("name", "text", False, False, False),
+      ColumnDefinition("is_delicious", "boolean", False, False, False),
     ]),
   )
 }
 
 pub fn sql_statement_from_string_create_table_no_autoincrement_test() {
   "CREATE TABLE apples (id INTEGER PRIMARY KEY)"
-  |> statement.from_string
+  |> from_string
   |> should.be_ok
   |> should.equal(
-    CreateTable("apples", [ColumnDefinition("id", "integer", True, False)]),
+    CreateTable("apples", [
+      ColumnDefinition("id", "integer", True, False, False),
+    ]),
   )
 }
 
 pub fn sql_statement_from_string_create_table_no_primary_key_test() {
   "CREATE TABLE apples (id integer)"
-  |> statement.from_string
+  |> from_string
   |> should.be_ok
   |> should.equal(
-    CreateTable("apples", [ColumnDefinition("id", "integer", False, False)]),
+    CreateTable("apples", [
+      ColumnDefinition("id", "integer", False, False, False),
+    ]),
   )
 }
 
 pub fn sql_statement_from_string_create_table_one_column_with_primary_key_and_autoincrement_test() {
-  "CREATE TABLE apples (id integer primary key autoincrement)"
-  |> statement.from_string
+  "CREATE TABLE apples (id INTEGER PRIMARY KEY AUTOINCREMENT)"
+  |> from_string
   |> should.be_ok
   |> should.equal(
-    CreateTable("apples", [ColumnDefinition("id", "integer", True, True)]),
+    CreateTable("apples", [ColumnDefinition("id", "integer", True, True, False)]),
+  )
+}
+
+pub fn sql_statement_from_string_create_table_column_is_primary_key_autoincrement_not_null_test() {
+  "CREATE TABLE \"apples\" (
+    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    \"name\" TEXT NOT NULL
+  )"
+  |> from_string
+  |> should.be_ok
+  |> should.equal(
+    CreateTable("apples", [
+      ColumnDefinition("id", "integer", True, True, True),
+      ColumnDefinition("name", "text", False, False, True),
+    ]),
   )
 }

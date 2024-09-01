@@ -134,21 +134,19 @@ is_manager = 1
 
 
 
-  // [
-  //   TableRecord(1, [
-  //     Some(Text("table")),
-  //     Some(Text("employees")),
-  //     Some(Text("employees")),
-  //     Some(Integer(2)),
-  //     Some(Text(
-  //       "CREATE TABLE employees (\n    id INTEGER PRIMARY KEY,\n    first_name TEXT,\n    last_name TEXT,\n    salary INTEGER\n)",
-  //     )),
-  //   ]),
-  //   TableRecord(2, [
-  //     Some(Text("index")),
-  //     Some(Text("idx_last_name")),
-  //     Some(Text("employees")),
-  //     Some(Integer(3)),
-  //     Some(Text("CREATE INDEX idx_last_name ON employees(last_name)")),
-  //   ]),
-  // ]
+
+Expected
+
+1151|Freak (New Earth)
+1874|Meloni Thawne (New Earth)
+2077|Lynx II (New Earth)
+78|Mari McCabe (New Earth)
+840|Charlie the Owl (New Earth)
+
+got:
+
+|Charlie the Owl (New Earth)
+|Freak (New Earth)
+|Lynx II (New Earth)
+|Mari McCabe (New Earth)
+|Meloni Thawne (New Earth)

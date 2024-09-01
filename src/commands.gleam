@@ -1,13 +1,12 @@
 import db_info.{type DbInfo}
 import file_streams/file_stream.{type FileStream}
 import gleam/list
-import gleam/result
 import gleam/string
 import page
 import record/record.{TableRecord}
 import record/record_value.{Text}
 import result_set.{type ResultSet}
-import sql/statement
+import sql/sql_statement.{type SqlStatement}
 
 pub fn db_info(stream: FileStream) -> DbInfo {
   stream
@@ -30,8 +29,7 @@ pub fn tables(stream: FileStream) -> List(String) {
   |> list.sort(string.compare)
 }
 
-pub fn run_sql(stream: FileStream, str: String) -> Result(ResultSet, Nil) {
-  str
-  |> statement.from_string
-  |> result.map(statement.execute(_, stream))
+pub fn run_sql(stream: FileStream, sql_statement: SqlStatement) -> ResultSet {
+  sql_statement
+  |> sql_statement.execute(stream)
 }

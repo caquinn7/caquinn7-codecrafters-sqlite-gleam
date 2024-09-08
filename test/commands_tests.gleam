@@ -3,7 +3,7 @@ import db_info.{DbInfo}
 import gleam/list
 import gleeunit
 import gleeunit/should
-import record/record_value.{Null}
+import record_value.{Null}
 import result_set
 import sql/sql_statement
 import utils
@@ -12,19 +12,31 @@ pub fn main() {
   gleeunit.main()
 }
 
+// These tests use utility methods that create temporary db files via os command.
+// Wanted to try using in-memory dbs via sqlight library but it requires rebar
+// which is not installed on the codecrafters servers.
+
 pub fn db_info_command_leaf_schema_test() {
   use stream <- utils.do_with_temp_db2(utils.test_sql_file)
   stream
   |> commands.db_info
-  |> should.equal(DbInfo(4096, 2))
+  |> should.equal(DbInfo(utils.default_page_size, 2))
 }
 
 pub fn db_info_command_interior_schema_test() {
-  use sql_file <- utils.do_with_sql(utils.generate_interior_schema_sql())
+  let expected_table_count = 50
+  use sql_file <- utils.do_with_file(utils.generate_create_tables_sql(
+    expected_table_count,
+  ))
   use stream <- utils.do_with_temp_db2(sql_file)
+
+  stream
+  |> utils.page_is_interior(1, utils.default_page_size)
+  |> should.be_true
+
   stream
   |> commands.db_info
-  |> should.equal(DbInfo(4096, 100))
+  |> should.equal(DbInfo(utils.default_page_size, expected_table_count))
 }
 
 pub fn tables_command_test() {
@@ -67,22 +79,22 @@ pub fn run_sql_command_select_value_test() {
 
 pub fn run_sql_command_select_values_test() {
   use stream <- utils.do_with_temp_db2(utils.test_sql_file)
-  "SELECT last_name, salary, is_manager FROM employees"
+  "SELECT last_name, salary FROM employees"
   |> sql_statement.from_string
   |> should.be_ok
   |> commands.run_sql(stream, _)
   |> result_set.unwrap
   |> should.equal([
-    ["Doe", "60000", "0"],
-    ["Smith", "65000", "1"],
-    ["Johnson", "70000", "0"],
-    ["Davis", "72000", "1"],
-    ["Brown", "68000", "0"],
-    ["Wilson", "75000", "1"],
-    ["Taylor", "64000", "0"],
-    ["Anderson", "71000", "0"],
-    ["Thomas", "69000", "1"],
-    ["Martinez", "73000", "0"],
+    ["Doe", "60000"],
+    ["Smith", "65000"],
+    ["Johnson", "70000"],
+    ["Davis", "72000"],
+    ["Brown", "68000"],
+    ["Wilson", "75000"],
+    ["Taylor", "64000"],
+    ["Anderson", "71000"],
+    ["Thomas", "69000"],
+    ["Martinez", "73000"],
   ])
 }
 

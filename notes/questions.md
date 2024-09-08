@@ -32,47 +32,6 @@ For a given page:
 - **Number of keys**: \( K \)
 - **Number of children**: \( K + 1 \)
 
-### Real-world Example
-
-Consider a database where an interior page has 5 keys. This interior page will have 6 child pointers, one for each partitioned space:
-
-```
-| key1 | key2 | key3 | key4 | key5 |
-| ptr1 | ptr2 | ptr3 | ptr4 | ptr5 | ptr6 |
-```
-
-In this example, the page divides the key space into 6 partitions, with each pointer leading to a child page that contains the keys for that partition.
-
-### Code Explanation
-
-The `number of cells` field in an interior B-tree page header determines the number of keys, and thus the number of children. For an interior page with `number of cells = 3`, there will be 4 children.
-
-In your provided example, if page 3 has only 1 key, it will have 2 children:
-- One child page to the left of the key.
-- One child page to the right of the key (indicated by the right-most pointer).
-
-### Summary
-
-Interior B-tree pages can have more than two children. The actual number of children is one more than the number of keys on the page. This structure allows the B-tree to effectively manage and search large datasets by ensuring that each interior node can have multiple children, leading to a more balanced and efficient tree structure.
-
-### -----------------------------------------------------------------------------------------
-
-### Question
-Can you change this example to one where there are only two children?
-
-Sure, let's illustrate an example where an interior table B-tree page has only two children, meaning it has only one key. This is a minimal case for an interior B-tree page. 
-
-### Example
-
-For an interior page with 1 key, it will have 2 children:
-
-```
-| key1 |
-| ptr1 | ptr2 |
-```
-
-*   `ptr1` points to the child page where all keys are less than `key1`.
-*   `ptr2` points to the child page where all keys are greater than `key1`.
 
 ### -----------------------------------------------------------------------------------------
 

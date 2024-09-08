@@ -1,9 +1,8 @@
 import file_streams/file_stream.{type FileStream, BeginningOfFile}
 import gleam/int
 import gleam/list
-import page
-import record/record.{TableRecord}
-import record/record_value.{Text}
+import page.{TableRecord}
+import record_value.{Text}
 
 pub type DbInfo {
   DbInfo(page_size: Int, table_count: Int)
@@ -15,10 +14,10 @@ pub fn read(stream: FileStream) -> DbInfo {
 
   let table_count =
     stream
-    |> page.read(number: 1, size: 4096)
+    |> page.read(1, 4096)
     |> page.read_records(stream)
-    |> list.count(fn(rec) {
-      case rec {
+    |> list.count(fn(record) {
+      case record {
         TableRecord([Text("table"), ..], _) -> True
         _ -> False
       }

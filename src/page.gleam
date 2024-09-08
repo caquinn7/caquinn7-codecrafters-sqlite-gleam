@@ -1,36 +1,47 @@
 import file_streams/file_stream.{type FileStream, BeginningOfFile}
 import gleam/int
-import gleam/list
-import page_type.{type PageType, Index, Table}
-import record/record.{type Record}
+import gleam/list.{Continue, Stop}
+import gleam/option.{type Option, None, Some}
+import gleam/order.{Eq, Gt}
+import record_value.{type RecordValue, type RecordValueType, Integer}
+import serial_type.{type SerialType}
 import varint
 
 pub type Page {
-  Interior(page_type: PageType, size: Int, number: Int, children: List(Page))
-  Leaf(page_type: PageType, size: Int, number: Int, cell_pointers: List(Int))
+  TableInteriorPage(size: Int, number: Int, cells: List(Cell))
+  IndexInteriorPage(size: Int, number: Int, cells: List(Cell))
+  TableLeafPage(size: Int, number: Int, cell_pointers: List(Int))
+  IndexLeafPage(size: Int, number: Int, cell_pointers: List(Int))
 }
 
-pub fn read(
-  from stream: FileStream,
-  number page_number: Int,
-  size page_size: Int,
-) -> Page {
+pub type Cell {
+  TableInteriorCell(child_pointer: Int, key: Option(Int))
+  IndexInteriorCell(child_pointer: Int, key: Option(RecordValue))
+}
+
+pub type Record {
+  TableRecord(values: List(RecordValue), rowid: Int)
+  IndexRecord(values: List(RecordValue))
+}
+
+pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
   let is_leaf = fn(i) {
     case i {
+      2 | 5 -> False
       10 | 13 -> True
-      _ -> False
+      _ -> panic
     }
   }
 
-  let get_page_type = fn(i) {
+  let is_table = fn(i) {
     case i {
-      2 | 10 -> Ok(Index)
-      5 | 13 -> Ok(Table)
-      _ -> Error(Nil)
+      2 | 10 -> False
+      5 | 13 -> True
+      _ -> panic
     }
   }
 
-  let page_offset = calculate_offset(page_number, page_size)
+  let page_offset = calculate_page_offset(page_number, page_size)
   let page_content_offset = case page_number {
     1 -> 100
     _ -> page_offset
@@ -40,8 +51,6 @@ pub fn read(
     file_stream.position(stream, BeginningOfFile(page_content_offset))
 
   let assert Ok(page_type_flag) = file_stream.read_uint8(stream)
-  let assert Ok(index_or_table) = get_page_type(page_type_flag)
-
   let assert Ok(_first_freeblock_offset) = file_stream.read_uint16_be(stream)
 
   let assert Ok(cell_count) = file_stream.read_uint16_be(stream)
@@ -53,7 +62,10 @@ pub fn read(
   case is_leaf(page_type_flag) {
     True -> {
       let cell_pointers = read_cell_pointers(stream, cell_count, [])
-      Leaf(index_or_table, page_size, page_number, cell_pointers)
+      case is_table(page_type_flag) {
+        True -> TableLeafPage(page_size, page_number, cell_pointers)
+        _ -> IndexLeafPage(page_size, page_number, cell_pointers)
+      }
     }
 
     _ -> {
@@ -62,54 +74,152 @@ pub fn read(
 
       let cell_pointers = read_cell_pointers(stream, cell_count, [])
 
-      let left_children_page_numbers =
-        cell_pointers
-        |> list.map(fn(pointer) {
-          go_to_cell(stream, page_offset, pointer)
-          let assert Ok(child_page_number) = file_stream.read_uint32_be(stream)
-          child_page_number
-        })
+      case is_table(page_type_flag) {
+        True -> {
+          let left_children =
+            cell_pointers
+            |> list.map(fn(pointer) {
+              go_to_cell(stream, page_offset, pointer)
 
-      let child_pages =
-        left_children_page_numbers
-        |> list.append([right_child_page_number])
-        |> list.map(fn(page_number) { read(stream, page_number, page_size) })
+              let assert Ok(child_page_number) =
+                file_stream.read_uint32_be(stream)
 
-      Interior(index_or_table, page_size, page_number, child_pages)
+              let key = varint.read(stream)
+              TableInteriorCell(child_page_number, Some(key))
+            })
+
+          let children =
+            left_children
+            |> list.append([TableInteriorCell(right_child_page_number, None)])
+
+          TableInteriorPage(page_size, page_number, children)
+        }
+
+        False -> {
+          let left_children =
+            cell_pointers
+            |> list.map(fn(pointer) {
+              go_to_cell(stream, page_offset, pointer)
+
+              let assert Ok(child_page_number) =
+                file_stream.read_uint32_be(stream)
+
+              let _key_size = varint.read(stream)
+              let values = read_record_values(stream)
+              let assert Ok(key) = list.first(values)
+              IndexInteriorCell(child_page_number, Some(key))
+            })
+
+          let children =
+            left_children
+            |> list.append([IndexInteriorCell(right_child_page_number, None)])
+
+          IndexInteriorPage(page_size, page_number, children)
+        }
+      }
     }
   }
 }
 
-pub fn count_records(page: Page) -> Int {
+pub fn count_records(page: Page, stream: FileStream) -> Int {
   case page {
-    Leaf(_, _, _, cell_pointers) -> list.length(cell_pointers)
-    Interior(_, _, _, children) ->
-      children
-      |> list.map(count_records)
+    TableLeafPage(_, _, cell_pointers) | IndexLeafPage(_, _, cell_pointers) ->
+      list.length(cell_pointers)
+
+    TableInteriorPage(_, _, cells) | IndexInteriorPage(_, _, cells) ->
+      cells
+      |> list.map(fn(cell) { read(stream, cell.child_pointer, page.size) })
+      |> list.map(fn(page) { count_records(page, stream) })
       |> int.sum
   }
 }
 
 pub fn read_records(page: Page, stream: FileStream) -> List(Record) {
   case page {
-    Interior(_, _, _, children) ->
-      children
+    TableInteriorPage(_, _, cells) | IndexInteriorPage(_, _, cells) ->
+      cells
+      |> list.map(fn(cell) { read(stream, cell.child_pointer, page.size) })
       |> list.flat_map(read_records(_, stream))
 
-    Leaf(page_type, size, number, cell_pointers) -> {
-      cell_pointers
-      |> list.map(fn(pointer) {
-        let page_offset = calculate_offset(number, size)
-        go_to_cell(stream, page_offset, pointer)
-
+    TableLeafPage(size, number, cell_pointers) ->
+      list.map(cell_pointers, fn(pointer) {
+        go_to_cell(stream, calculate_page_offset(number, size), pointer)
         let _payload_size = varint.read(stream)
-        record.read(stream, page_type)
+        let rowid = varint.read(stream)
+        let values = read_record_values(stream)
+        TableRecord(values, rowid)
+      })
+
+    IndexLeafPage(size, number, cell_pointers) -> {
+      list.map(cell_pointers, fn(pointer) {
+        go_to_cell(stream, calculate_page_offset(number, size), pointer)
+        let _payload_size = varint.read(stream)
+        let values = read_record_values(stream)
+        IndexRecord(values)
       })
     }
   }
 }
 
-fn calculate_offset(page_number: Int, page_size: Int) -> Int {
+pub fn find_records(
+  page: Page,
+  stream: FileStream,
+  target_key: RecordValue,
+  key_type: RecordValueType,
+) -> List(Record) {
+  case page {
+    TableInteriorPage(size, _, cells) | IndexInteriorPage(size, _, cells) -> {
+      let assert Ok(first_cell) = list.first(cells)
+      let assert Ok(rest) = list.rest(cells)
+
+      rest
+      |> list.fold_until(first_cell, fn(prev_cell, curr_cell) {
+        let assert Some(key) = case prev_cell {
+          TableInteriorCell(_, k) -> option.map(k, Integer)
+          IndexInteriorCell(_, k) -> k
+        }
+        case record_value.compare(target_key, key, key_type) {
+          Ok(Gt) -> Continue(curr_cell)
+          Ok(_) -> Stop(prev_cell)
+          _ -> panic
+        }
+      })
+      |> fn(cell: Cell) { read(stream, cell.child_pointer, size) }
+      |> find_records(stream, target_key, key_type)
+    }
+
+    TableLeafPage(size, number, cell_pointers) -> {
+      let assert Integer(target_rowid) = target_key
+
+      list.filter_map(cell_pointers, fn(pointer) {
+        go_to_cell(stream, calculate_page_offset(number, size), pointer)
+        let _payload_size = varint.read(stream)
+        let rowid = varint.read(stream)
+        case rowid == target_rowid {
+          True -> {
+            let values = read_record_values(stream)
+            Ok(TableRecord(values, rowid))
+          }
+          _ -> Error(Nil)
+        }
+      })
+    }
+
+    IndexLeafPage(size, number, cell_pointers) ->
+      list.filter_map(cell_pointers, fn(pointer) {
+        go_to_cell(stream, calculate_page_offset(number, size), pointer)
+        let _payload_size = varint.read(stream)
+        let values = read_record_values(stream)
+        let assert Ok(first_value) = list.first(values)
+        case record_value.compare(target_key, first_value, key_type) {
+          Ok(Eq) -> Ok(IndexRecord(values))
+          _ -> Error(Nil)
+        }
+      })
+  }
+}
+
+fn calculate_page_offset(page_number: Int, page_size: Int) -> Int {
   page_size * { page_number - 1 }
 }
 
@@ -131,4 +241,28 @@ fn go_to_cell(stream: FileStream, page_offset: Int, pointer: Int) -> Int {
   let assert Ok(pos) =
     file_stream.position(stream, BeginningOfFile(page_offset + pointer))
   pos
+}
+
+fn read_record_values(stream: FileStream) -> List(RecordValue) {
+  let header_size = varint.read(stream)
+  let serial_types = read_record_header(stream, header_size - 1, [])
+  list.map(serial_types, record_value.read(stream, _))
+}
+
+fn read_record_header(
+  stream: FileStream,
+  bytes_remaining: Int,
+  acc: List(SerialType),
+) -> List(SerialType) {
+  case bytes_remaining == 0 {
+    True -> list.reverse(acc)
+    _ -> {
+      let #(serial_type_code, code_size) = varint.read_with_size(stream)
+      let serial_type = serial_type.from_code(serial_type_code)
+      read_record_header(stream, bytes_remaining - code_size, [
+        serial_type,
+        ..acc
+      ])
+    }
+  }
 }

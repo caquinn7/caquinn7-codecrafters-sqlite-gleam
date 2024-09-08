@@ -1,4 +1,3 @@
-import gleam/io
 import gleeunit
 import gleeunit/should
 import result_set

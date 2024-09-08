@@ -1,9 +1,3 @@
--- CREATE TABLE sandwiches (
---     id INTEGER PRIMARY KEY,
---     [name] TEXT,
---     [length] REAL,
---     count INTEGER
--- );
 CREATE TABLE sandwiches (
     id INTEGER PRIMARY KEY,
     name TEXT,
@@ -27,20 +21,19 @@ CREATE TABLE employees (
     id INTEGER PRIMARY KEY,
     first_name TEXT,
     last_name TEXT,
-    salary INTEGER,
-    is_manager BOOLEAN
+    salary INTEGER
 );
 
 CREATE INDEX idx_last_name ON employees(last_name);
 
-INSERT INTO employees (first_name, last_name, salary, is_manager) VALUES ('John', 'Doe', 60000, FALSE);
-INSERT INTO employees (first_name, last_name, salary, is_manager) VALUES ('Jane', 'Smith', 65000, TRUE);
-INSERT INTO employees (first_name, last_name, salary, is_manager) VALUES ('Michael', 'Johnson', 70000, FALSE);
-INSERT INTO employees (first_name, last_name, salary, is_manager) VALUES ('Emily', 'Davis', 72000, TRUE);
-INSERT INTO employees (first_name, last_name, salary, is_manager) VALUES ('Chris', 'Brown', 68000, FALSE);
-INSERT INTO employees (first_name, last_name, salary, is_manager) VALUES ('Patricia', 'Wilson', 75000, TRUE);
-INSERT INTO employees (first_name, last_name, salary, is_manager) VALUES ('Robert', 'Taylor', 64000, FALSE);
-INSERT INTO employees (first_name, last_name, salary, is_manager) VALUES ('Linda', 'Anderson', 71000, FALSE);
-INSERT INTO employees (first_name, last_name, salary, is_manager) VALUES ('William', 'Thomas', 69000, TRUE);
-INSERT INTO employees (first_name, last_name, salary, is_manager) VALUES ('Barbara', 'Martinez', 73000, FALSE);
+INSERT INTO employees (first_name, last_name, salary) VALUES ('John', 'Doe', 60000);
+INSERT INTO employees (first_name, last_name, salary) VALUES ('Jane', 'Smith', 65000);
+INSERT INTO employees (first_name, last_name, salary) VALUES ('Michael', 'Johnson', 70000);
+INSERT INTO employees (first_name, last_name, salary) VALUES ('Emily', 'Davis', 72000);
+INSERT INTO employees (first_name, last_name, salary) VALUES ('Chris', 'Brown', 68000);
+INSERT INTO employees (first_name, last_name, salary) VALUES ('Patricia', 'Wilson', 75000);
+INSERT INTO employees (first_name, last_name, salary) VALUES ('Robert', 'Taylor', 64000);
+INSERT INTO employees (first_name, last_name, salary) VALUES ('Linda', 'Anderson', 71000);
+INSERT INTO employees (first_name, last_name, salary) VALUES ('William', 'Thomas', 69000);
+INSERT INTO employees (first_name, last_name, salary) VALUES ('Barbara', 'Martinez', 73000);
 

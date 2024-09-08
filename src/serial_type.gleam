@@ -1,7 +1,7 @@
 import gleam/int
 
 pub type SerialType {
-  Null
+  NullType
   IntegerType(Int)
   RealType
   Zero
@@ -12,7 +12,7 @@ pub type SerialType {
 
 pub fn from_code(code: Int) {
   case code {
-    0 -> Null
+    0 -> NullType
     x if x >= 1 && x <= 4 -> IntegerType(x)
     5 -> IntegerType(6)
     6 -> IntegerType(8)

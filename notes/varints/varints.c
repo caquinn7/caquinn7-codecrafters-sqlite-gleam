@@ -1,3 +1,7 @@
+/*
+https://github.com/sqlite/sqlite/blob/master/src/util.c
+*/
+
 #include <stdio.h>
 #include <assert.h>
 
@@ -267,6 +271,7 @@ int main()
         (unsigned char[]){0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F},
         (unsigned char[]){0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01},
         (unsigned char[]){0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+        (unsigned char[]){0x11, 0x03},
     };
 
     // Number of arrays
@@ -294,12 +299,6 @@ int main()
         bytesWritten = sqlite3PutVarint(encoded, decodedValues[i]);
         writeEncodedVarint(bytesWritten, encoded);
     }
-
-    unsigned char encoded[9];
-    int bytesWritten;
-    bytesWritten = sqlite3PutVarint(encoded, 10);
-    writeEncodedVarint(bytesWritten, encoded);
-
 
     return 0;
 }

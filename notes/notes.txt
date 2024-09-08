@@ -1,5 +1,5 @@
 The sqlite_schema.rootpage column stores the page number of the root b-tree page for tables and indexes.
--------------
+---------------------------------------------------------
 
 B-tree Page Header Format
 -------------------------
@@ -55,13 +55,15 @@ Index Interior Cell (header 0x02):
     omitted if all payload fits on the b-tree page.
 
 ---------------------------------------------------------
+DECODING INTERIOR TABLE CELLS
+
 interior_schema.db
 
 00000064  05 00 00 00 02 0f ea 00  00 00 00 4a  0f ef  0f ea
 
 2 cells
 cell content offset 0f ea
-rightmost page 74
+rightmost child page 74 (4a)
 
 0f ef => 00 00 00 25  22 (page 37 key 34)
 0f ea => 00 00 00 27  42 (page 39 key 66)
@@ -76,16 +78,59 @@ page 74
 0004a000  0d 00 00 00 00 0f f4 00
 
 ---------------------------------------------------------
-Decoding Leaf Cells
+DECODING INTERIOR INDEX CELLS
 
-Table B-Tree Leaf Cell
+companies.db
+
+page 4 (12288)
+00003000  02 00 00 00 01 0f ee 00  00 00 07 3a  0f ee
+
+1 cell
+cell content offset 0f ee
+rightmost child page 1850 (07 3a)
+
+0f ee => 00 00 07 39  0d  (page 1849  13 bytes)
+
+    03 1b 03 6d 79 61 6e 6d 61 72 14 56 eb
+              m  y  a  n  m  a  r
+
+    03 1b 03
+        03: header size 3 bytes
+        1b: 0x1b = 27 => (27 - 13) / 2 = 7 => 7 character string
+        03: 3-byte two's complement integer
+    6d 79 61 6e 6d 61 72: myanmar
+    14 56 eb: 1332971
+
+
+page 1849 (7569408)
+00738000  02 00 00 00 b3 01 84 00  00 00 07 37  0f ea
+
+179 cells
+cell content offset 01 84
+rightmost child page 1847 (07 37)
+
+0f ea => 00 00 06 84  11 (page 1668  17 bytes)
+
+    03 23 03 61 66 67 68 61 6e 69 73 74 61 6e 3a d0 9d
+
+    03 23 03
+        03: header size 3 bytes
+        23: 0x23 = 35 => (35 - 13) / 2 = 11 => 11 char string
+        03: 3-byte two's complement integer
+    61 66 67 68 61 6e 69 73 74 61 6e: afghanistan
+    3a d0 9d: 3854493
+
+
+---------------------------------------------------------
+DECODING TABLE LEAF CELLS
+
 0f 01 05 00 15 13 03 4a 6f 68 6e 44 6f 65 00 ea 60
 
 0f: payload size 15 bytes
 01: rowid
 05 00 15 13 03:
     05: header size 5 bytes
-    00: ?
+    00: NULL
     15: 0x15 = 21 => (21 - 13) / 2 = 4 => 4 character string
     13: 0x13 = 19 => (19 - 13) / 2 = 3 => 3 character string
     03: 3-byte two's complement integer
@@ -93,8 +138,8 @@ Table B-Tree Leaf Cell
 44 6f 65: Doe
 00 ea 60: 60000
 
-
-Index B-Tree Leaf Cell
+---------------------------------------------------------
+DECODING INDEX LEAF CELLS
 0c 03 1d 01 4d 61 72 74 69 6e 65 7a 0a 
 
 0c: payload size 12 bytes
@@ -104,6 +149,7 @@ Index B-Tree Leaf Cell
     01: 1-byte two's complement integer
 4d 61 72 74 69 6e 65 7a: Martinez
 0a: 10 (the rowid)
+
 
 ---------------------------------------------------------
 Serial Type Codes Of The Record Format
@@ -123,30 +169,3 @@ N≥12 and even	(N-12)/2	Value is a BLOB that is (N-12)/2 bytes in length.
 N≥13 and odd	(N-13)/2	Value is a string in the text encoding and (N-13)/2 bytes in length. The nul terminator is not stored.
 
 
-is_manager = 0
-10 01 06 00 15 13 03 08 4a 6f 68 6e 44 6f 65 00 ea 60
-06 00 15 13 03 08
-
-is_manager = 1
-12 02 06 00 15 17 03 09 4a 61 6e 65 53 6d 69 74 68 00 fd e8
-06 00 15 17 03 09
-
-
-
-
-
-Expected
-
-1151|Freak (New Earth)
-1874|Meloni Thawne (New Earth)
-2077|Lynx II (New Earth)
-78|Mari McCabe (New Earth)
-840|Charlie the Owl (New Earth)
-
-got:
-
-|Charlie the Owl (New Earth)
-|Freak (New Earth)
-|Lynx II (New Earth)
-|Mari McCabe (New Earth)
-|Meloni Thawne (New Earth)

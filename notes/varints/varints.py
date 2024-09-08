@@ -1,3 +1,4 @@
+# simplified way to decode a varint
 def decode_varint(bytes: bytes) -> tuple[int, int]:
     value = 0
     for i in range(len(bytes)):

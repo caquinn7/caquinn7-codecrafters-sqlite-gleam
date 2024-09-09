@@ -1,8 +1,9 @@
 import file_streams/file_stream.{type FileStream, BeginningOfFile}
 import gleam/int
+import gleam/io
 import gleam/list.{Continue, Stop}
 import gleam/option.{type Option, None, Some}
-import gleam/order.{Eq, Lt}
+import gleam/order.{Eq, Gt}
 import record_value.{type RecordValue, type RecordValueType, Integer}
 import serial_type.{type SerialType}
 import varint
@@ -14,12 +15,12 @@ pub type Page {
   IndexLeafPage(size: Int, number: Int, cell_pointers: List(Int))
 }
 
-// The cell for the right-most child page has no key
+// The cell for the right-most child page has no prev_key
 pub type Cell {
-  // For table interior cells, the key is the rowid
-  TableInteriorCell(child_pointer: Int, key: Option(Int))
-  // For index interior cells, the key is a value from the indexed column
-  IndexInteriorCell(child_pointer: Int, key: Option(RecordValue))
+  // For table interior cells, the prev_key is the rowid
+  TableInteriorCell(child_pointer: Int, prev_key: Option(Int))
+  // For index interior cells, the prev_key is a value from the indexed column
+  IndexInteriorCell(child_pointer: Int, prev_key: Option(RecordValue))
 }
 
 pub type Record {
@@ -96,8 +97,8 @@ pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
               let assert Ok(child_page_number) =
                 file_stream.read_uint32_be(stream)
 
-              let key = varint.read(stream)
-              TableInteriorCell(child_page_number, Some(key))
+              let prev_key = varint.read(stream)
+              TableInteriorCell(child_page_number, Some(prev_key))
             })
 
           let children =
@@ -118,8 +119,8 @@ pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
 
               let _key_size = varint.read(stream)
               let values = read_record_values(stream)
-              let assert Ok(key) = list.first(values)
-              IndexInteriorCell(child_page_number, Some(key))
+              let assert Ok(prev_key) = list.first(values)
+              IndexInteriorCell(child_page_number, Some(prev_key))
             })
 
           let children =
@@ -184,18 +185,15 @@ pub fn find_records(
       let assert Ok(first_cell) = list.first(cells)
       let assert Ok(rest) = list.rest(cells)
 
-      // Iterate through the page's cells until we find one whose key is greater than or equal to the target key.
-      // If we find such a cell, the search stops, and this cell's child page will be visited next.
-      // If we reach the end of the list without finding a greater or equal key, the right-most child page is visited next.
       rest
       |> list.fold_until(first_cell, fn(prev_cell, curr_cell) {
-        let assert Some(key) = case prev_cell {
+        let assert Some(prev_key) = case prev_cell {
           TableInteriorCell(_, k) -> option.map(k, Integer)
           IndexInteriorCell(_, k) -> k
         }
-        case record_value.compare(target_key, key, key_type) {
-          Ok(Lt) -> Stop(prev_cell)
-          Ok(_) -> Continue(curr_cell)
+        case record_value.compare(target_key, prev_key, key_type) {
+          Ok(Gt) -> Continue(curr_cell)
+          Ok(_) -> Stop(prev_cell)
           _ -> panic
         }
       })
@@ -240,8 +238,8 @@ fn calculate_page_offset(page_number: Int, page_size: Int) -> Int {
 
 /// The cell pointer array of a b-tree page immediately follows the b-tree page header.
 /// Let K be the number of cells on the btree. The cell pointer array consists of K 2-byte integer offsets to the cell contents.
-/// The cell pointers are arranged in key order with left-most cell (the cell with the smallest key) first
-/// and the right-most cell (the cell with the largest key) last.
+/// The cell pointers are arranged in prev_key order with left-most cell (the cell with the smallest prev_key) first
+/// and the right-most cell (the cell with the largest prev_key) last.
 fn read_cell_pointers(
   stream: FileStream,
   bytes_remaining: Int,

@@ -2,7 +2,7 @@ import file_streams/file_stream.{type FileStream, BeginningOfFile}
 import gleam/int
 import gleam/list.{Continue, Stop}
 import gleam/option.{type Option, None, Some}
-import gleam/order.{Eq, Gt}
+import gleam/order.{Eq, Lt}
 import record_value.{type RecordValue, type RecordValueType, Integer}
 import serial_type.{type SerialType}
 import varint
@@ -14,8 +14,11 @@ pub type Page {
   IndexLeafPage(size: Int, number: Int, cell_pointers: List(Int))
 }
 
+// The cell for the right-most child page has no key
 pub type Cell {
+  // For table interior cells, the key is the rowid
   TableInteriorCell(child_pointer: Int, key: Option(Int))
+  // For index interior cells, the key is a value from the indexed column
   IndexInteriorCell(child_pointer: Int, key: Option(RecordValue))
 }
 
@@ -50,9 +53,15 @@ pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
   let assert Ok(_) =
     file_stream.position(stream, BeginningOfFile(page_content_offset))
 
+  // The one-byte flag at offset 0 indicating the b-tree page type.
+  // A value of 2 (0x02) means the page is an interior index b-tree page.
+  // A value of 5 (0x05) means the page is an interior table b-tree page.
+  // A value of 10 (0x0a) means the page is a leaf index b-tree page.
+  // A value of 13 (0x0d) means the page is a leaf table b-tree page.
   let assert Ok(page_type_flag) = file_stream.read_uint8(stream)
   let assert Ok(_first_freeblock_offset) = file_stream.read_uint16_be(stream)
 
+  //The two-byte integer at offset 3 gives the number of cells on the page.
   let assert Ok(cell_count) = file_stream.read_uint16_be(stream)
 
   // todo A zero value for this integer is interpreted as 65536
@@ -69,6 +78,9 @@ pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
     }
 
     _ -> {
+      // The four-byte page number at offset 8 is the right-most pointer.
+      // This value appears in the header of interior b-tree pages only
+      // and is omitted from all other pages.
       let assert Ok(right_child_page_number) =
         file_stream.read_uint32_be(stream)
 
@@ -172,6 +184,9 @@ pub fn find_records(
       let assert Ok(first_cell) = list.first(cells)
       let assert Ok(rest) = list.rest(cells)
 
+      // Iterate through the page's cells until we find one whose key is greater than or equal to the target key.
+      // If we find such a cell, the search stops, and this cell's child page will be visited next.
+      // If we reach the end of the list without finding a greater or equal key, the right-most child page is visited next.
       rest
       |> list.fold_until(first_cell, fn(prev_cell, curr_cell) {
         let assert Some(key) = case prev_cell {
@@ -179,8 +194,8 @@ pub fn find_records(
           IndexInteriorCell(_, k) -> k
         }
         case record_value.compare(target_key, key, key_type) {
-          Ok(Gt) -> Continue(curr_cell)
-          Ok(_) -> Stop(prev_cell)
+          Ok(Lt) -> Stop(prev_cell)
+          Ok(_) -> Continue(curr_cell)
           _ -> panic
         }
       })
@@ -223,6 +238,10 @@ fn calculate_page_offset(page_number: Int, page_size: Int) -> Int {
   page_size * { page_number - 1 }
 }
 
+/// The cell pointer array of a b-tree page immediately follows the b-tree page header.
+/// Let K be the number of cells on the btree. The cell pointer array consists of K 2-byte integer offsets to the cell contents.
+/// The cell pointers are arranged in key order with left-most cell (the cell with the smallest key) first
+/// and the right-most cell (the cell with the largest key) last.
 fn read_cell_pointers(
   stream: FileStream,
   bytes_remaining: Int,

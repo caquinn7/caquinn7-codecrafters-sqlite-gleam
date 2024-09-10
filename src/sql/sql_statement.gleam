@@ -1,7 +1,6 @@
 import db_info
 import file_streams/file_stream.{type FileStream}
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/regex
@@ -465,7 +464,6 @@ fn get_table_records_via_index(
       let assert Ok(rowid) = list.last(vals)
       rowid
     })
-    |> io.debug
 
   case target_rowids {
     [] -> []

@@ -1,6 +1,5 @@
 import file_streams/file_stream.{type FileStream, BeginningOfFile}
 import gleam/int
-import gleam/io
 import gleam/list.{Continue, Stop}
 import gleam/option.{type Option, None, Some}
 import gleam/order.{Eq, Gt}
@@ -15,12 +14,12 @@ pub type Page {
   IndexLeafPage(size: Int, number: Int, cell_pointers: List(Int))
 }
 
-// The cell for the right-most child page has no prev_key
+// The cell for the right-most child page has no key
 pub type Cell {
-  // For table interior cells, the prev_key is the rowid
-  TableInteriorCell(child_pointer: Int, prev_key: Option(Int))
-  // For index interior cells, the prev_key is a value from the indexed column
-  IndexInteriorCell(child_pointer: Int, prev_key: Option(RecordValue))
+  // For table interior cells, the key is the rowid
+  TableInteriorCell(child_pointer: Int, key: Option(Int))
+  // For index interior cells, the key is a value from the indexed column
+  IndexInteriorCell(child_pointer: Int, key: Option(RecordValue))
 }
 
 pub type Record {
@@ -97,8 +96,8 @@ pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
               let assert Ok(child_page_number) =
                 file_stream.read_uint32_be(stream)
 
-              let prev_key = varint.read(stream)
-              TableInteriorCell(child_page_number, Some(prev_key))
+              let key = varint.read(stream)
+              TableInteriorCell(child_page_number, Some(key))
             })
 
           let children =
@@ -119,8 +118,8 @@ pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
 
               let _key_size = varint.read(stream)
               let values = read_record_values(stream)
-              let assert Ok(prev_key) = list.first(values)
-              IndexInteriorCell(child_page_number, Some(prev_key))
+              let assert Ok(key) = list.first(values)
+              IndexInteriorCell(child_page_number, Some(key))
             })
 
           let children =
@@ -238,8 +237,8 @@ fn calculate_page_offset(page_number: Int, page_size: Int) -> Int {
 
 /// The cell pointer array of a b-tree page immediately follows the b-tree page header.
 /// Let K be the number of cells on the btree. The cell pointer array consists of K 2-byte integer offsets to the cell contents.
-/// The cell pointers are arranged in prev_key order with left-most cell (the cell with the smallest prev_key) first
-/// and the right-most cell (the cell with the largest prev_key) last.
+/// The cell pointers are arranged in key order with left-most cell (the cell with the smallest key) first
+/// and the right-most cell (the cell with the largest key) last.
 fn read_cell_pointers(
   stream: FileStream,
   bytes_remaining: Int,

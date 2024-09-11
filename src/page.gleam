@@ -184,6 +184,8 @@ pub fn find_records(
       let assert Ok(first_cell) = list.first(cells)
       let assert Ok(rest) = list.rest(cells)
 
+      // For any key X, pointers to the left of a X refer to b-tree pages on which all keys are less than or equal to X.
+      // Pointers to the right of X refer to pages where all keys are greater than X.
       rest
       |> list.fold_until(first_cell, fn(prev_cell, curr_cell) {
         let assert Some(prev_key) = case prev_cell {

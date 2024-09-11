@@ -141,7 +141,7 @@ pub fn count_records(page: Page, stream: FileStream) -> Int {
     TableInteriorPage(_, _, cells) | IndexInteriorPage(_, _, cells) ->
       cells
       |> list.map(fn(cell) { read(stream, cell.child_pointer, page.size) })
-      |> list.map(fn(page) { count_records(page, stream) })
+      |> list.map(count_records(_, stream))
       |> int.sum
   }
 }

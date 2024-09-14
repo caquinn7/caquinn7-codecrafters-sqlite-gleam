@@ -77,7 +77,7 @@ pub fn from_string(input: String) -> Result(SqlStatement, Nil) {
 }
 
 fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
-  let identifier_no_quotes_parser = {
+  let identifier_parser = {
     use tok <- nibble.take_map("identifier")
     case tok {
       sql_token.Identifier(s) -> Some(s)
@@ -85,7 +85,7 @@ fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
     }
   }
 
-  let identifier_double_quoted_parser = {
+  let string_double_quoted_parser = {
     use tok <- nibble.take_map("string with double quotes")
     case tok {
       sql_token.StringDoubleQuoted(s) -> Some(s)
@@ -93,7 +93,7 @@ fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
     }
   }
 
-  let identifier_single_quoted_parser = {
+  let string_single_quoted_parser = {
     use tok <- nibble.take_map("string with single quotes")
     case tok {
       sql_token.StringSingleQuoted(s) -> Some(s)
@@ -102,14 +102,14 @@ fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
   }
 
   let column_name_parser = {
-    one_of([identifier_no_quotes_parser, identifier_double_quoted_parser])
+    one_of([identifier_parser, string_double_quoted_parser])
   }
 
   let table_name_parser = {
     one_of([
-      identifier_no_quotes_parser,
-      identifier_single_quoted_parser,
-      identifier_double_quoted_parser,
+      identifier_parser,
+      string_single_quoted_parser,
+      string_double_quoted_parser,
     ])
   }
 

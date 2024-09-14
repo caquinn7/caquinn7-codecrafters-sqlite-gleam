@@ -79,22 +79,22 @@ pub fn run_sql_command_select_value_test() {
 
 pub fn run_sql_command_select_values_test() {
   use stream <- utils.do_with_temp_db2(utils.test_sql_file)
-  "SELECT last_name, salary FROM employees"
+  "SELECT last_name, salary, performance_score FROM employees"
   |> sql_statement.from_string
   |> should.be_ok
   |> commands.run_sql(stream, _)
   |> result_set.unwrap
   |> should.equal([
-    ["Doe", "60000"],
-    ["Smith", "65000"],
-    ["Johnson", "70000"],
-    ["Davis", "72000"],
-    ["Brown", "68000"],
-    ["Wilson", "75000"],
-    ["Taylor", "64000"],
-    ["Anderson", "71000"],
-    ["Thomas", "69000"],
-    ["Martinez", "73000"],
+    ["Doe", "60000", "3.8"],
+    ["Smith", "65000", "1.2"],
+    ["Johnson", "70000", "2.7"],
+    ["Davis", "72000", "4.2"],
+    ["Brown", "68000", "3.1"],
+    ["Wilson", "75000", "5"],
+    ["Taylor", "64000", "2.5"],
+    ["Anderson", "71000", "4.6"],
+    ["Thomas", "69000", "3.4"],
+    ["Martinez", "73000", "0.5"],
   ])
 }
 

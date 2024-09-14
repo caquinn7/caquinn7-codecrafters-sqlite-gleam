@@ -30,10 +30,15 @@ pub fn read(stream: FileStream, serial_type: SerialType) -> RecordValue {
     serial_type.IntegerType(byte_size) -> {
       let assert Ok(bytes) = file_stream.read_bytes_exact(stream, byte_size)
       let bit_size = byte_size * 8
-      let assert <<x:size(bit_size)>> = bytes
-      Integer(x)
+      let assert <<i:size(bit_size)>> = bytes
+      Integer(i)
     }
-    serial_type.RealType -> todo
+    serial_type.RealType -> {
+      let byte_size = 8
+      let assert Ok(bytes) = file_stream.read_bytes_exact(stream, byte_size)
+      let assert <<f:float>> = bytes
+      Real(f)
+    }
     serial_type.Zero -> Integer(0)
     serial_type.One -> Integer(1)
     serial_type.BlobType(_byte_size) -> todo

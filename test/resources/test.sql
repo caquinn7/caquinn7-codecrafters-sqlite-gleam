@@ -21,19 +21,20 @@ CREATE TABLE employees (
     id INTEGER PRIMARY KEY,
     first_name TEXT,
     last_name TEXT,
-    salary INTEGER
+    salary INTEGER,
+    performance_score REAL
 );
 
 CREATE INDEX idx_last_name ON employees(last_name);
 
-INSERT INTO employees (first_name, last_name, salary) VALUES ('John', 'Doe', 60000);
-INSERT INTO employees (first_name, last_name, salary) VALUES ('Jane', 'Smith', 65000);
-INSERT INTO employees (first_name, last_name, salary) VALUES ('Michael', 'Johnson', 70000);
-INSERT INTO employees (first_name, last_name, salary) VALUES ('Emily', 'Davis', 72000);
-INSERT INTO employees (first_name, last_name, salary) VALUES ('Chris', 'Brown', 68000);
-INSERT INTO employees (first_name, last_name, salary) VALUES ('Patricia', 'Wilson', 75000);
-INSERT INTO employees (first_name, last_name, salary) VALUES ('Robert', 'Taylor', 64000);
-INSERT INTO employees (first_name, last_name, salary) VALUES ('Linda', 'Anderson', 71000);
-INSERT INTO employees (first_name, last_name, salary) VALUES ('William', 'Thomas', 69000);
-INSERT INTO employees (first_name, last_name, salary) VALUES ('Barbara', 'Martinez', 73000);
+INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('John', 'Doe', 60000, 3.8);
+INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Jane', 'Smith', 65000, 1.2);
+INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Michael', 'Johnson', 70000, 2.7);
+INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Emily', 'Davis', 72000, 4.2);
+INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Chris', 'Brown', 68000, 3.1);
+INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Patricia', 'Wilson', 75000, 5.0);
+INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Robert', 'Taylor', 64000, 2.5);
+INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Linda', 'Anderson', 71000, 4.6);
+INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('William', 'Thomas', 69000, 3.4);
+INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Barbara', 'Martinez', 73000, 0.5);
 

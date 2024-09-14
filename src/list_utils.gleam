@@ -1,5 +1,6 @@
 import gleam/bool
 
+/// Finds the first element and its index in a given list for which the given function returns `True`.
 pub fn find_item_and_index(
   xs: List(x),
   predicate: fn(x) -> Bool,
@@ -7,11 +8,7 @@ pub fn find_item_and_index(
   find_item_and_index_helper(xs, predicate, 0)
 }
 
-pub fn find_item_and_index_helper(
-  xs: List(x),
-  predicate: fn(x) -> Bool,
-  index: Int,
-) {
+fn find_item_and_index_helper(xs: List(x), predicate: fn(x) -> Bool, index: Int) {
   case xs {
     [] -> Error(Nil)
     [h, ..t] ->
@@ -22,6 +19,8 @@ pub fn find_item_and_index_helper(
   }
 }
 
+/// Returns the element found at the given index in the given list.
+/// If the list is empty or the index is out of range, returns `Error(Nil)`
 pub fn element_at(xs: List(x), index: Int) -> Result(x, Nil) {
   use <- bool.guard(index < 0, Error(Nil))
   element_at_helper(xs, index, 0)

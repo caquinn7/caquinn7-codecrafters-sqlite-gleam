@@ -16,6 +16,7 @@ import gleam/int
 // N≥12 and even	(N-12)/2	    Value is a BLOB that is (N-12)/2 bytes in length.
 // N≥13 and odd	  (N-13)/2	    Value is a string in the text encoding and (N-13)/2 bytes in length. The null terminator is not stored.
 
+/// Determines the datatype of each column in a record.
 pub type SerialType {
   NullType
   IntegerType(Int)
@@ -27,6 +28,7 @@ pub type SerialType {
 }
 
 pub fn from_code(code: Int) {
+  // For serial types 0, 8, 9, 12, and 13, the value is zero bytes in length
   case code {
     0 -> NullType
     x if x >= 1 && x <= 4 -> IntegerType(x)

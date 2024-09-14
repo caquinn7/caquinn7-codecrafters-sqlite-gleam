@@ -38,6 +38,11 @@ pub type Cell {
   IndexInteriorCell(child_pointer: Int, key: RecordValue)
 }
 
+/// A record contains a header and a body, in that order.
+/// The header begins with a single varint which determines the total number of bytes in the header.
+/// The varint value is the size of the header in bytes including the size varint itself.
+/// Following the size varint are one or more additional varints, one per column.
+/// These additional varints are called "serial type" numbers and determine the datatype of each column
 pub type Record {
   TableRecord(values: List(RecordValue), rowid: Int)
   IndexRecord(values: List(RecordValue))

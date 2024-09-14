@@ -23,6 +23,7 @@ pub type SqlToken {
   StringSingleQuoted(String)
   Table
   TypeInteger
+  TypeReal
   TypeText
   Where
 }
@@ -43,6 +44,7 @@ pub fn lexer() {
     lexer.keyword("not null", "\\s+|,|\\)", NotNull),
     lexer.keyword("on", " ", On),
     lexer.keyword("primary key", "\\s+|,|\\)", PrimaryKey),
+    lexer.keyword("real", "\\s+|,|\\)", TypeReal),
     lexer.keyword("select", " ", Select),
     lexer.keyword("table", " ", Table),
     lexer.keyword("text", "\\s+|,|\\)", TypeText),

@@ -33,15 +33,15 @@ pub fn handle_args_db_path_does_not_exist_test() {
   |> should.equal("Error opening database file: Enoent")
 }
 
-// pub fn handle_args_error_parsing_sql_test() {
-//   use db_path <- temporary.create(temporary.file())
-//   use _ <- utils.do_with_temp_db3(db_path, utils.test_sql_file)
+pub fn handle_args_error_parsing_sql_test() {
+  use db_path <- temporary.create(temporary.file())
+  use _ <- utils.do_with_temp_db3(db_path, utils.test_sql_file)
 
-//   [db_path, "SELECT COUNT(*)"]
-//   |> sqlite.handle_args
-//   |> should.be_error
-//   |> should.equal("Expected sql but unable to parse input.")
-// }
+  [db_path, "SELECT COUNT(*)"]
+  |> sqlite.handle_args
+  |> should.be_error
+  |> should.equal("Expected sql but unable to parse input.")
+}
 
 pub fn handle_args_select_count_test() {
   use db_path <- temporary.create(temporary.file())

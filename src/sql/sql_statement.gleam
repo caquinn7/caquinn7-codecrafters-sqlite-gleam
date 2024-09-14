@@ -13,7 +13,7 @@ import nibble.{
 }
 import nibble/lexer
 import page.{type Record, IndexRecord, TableRecord}
-import record_value.{type RecordValue, type RecordValueType, Integer, Text}
+import record_value.{type RecordValue, type RecordValueType, Integer, Real, Text}
 import result_set.{type ResultSet}
 import sql/token as sql_token
 
@@ -138,7 +138,7 @@ fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
       use tok <- nibble.take_map("integer")
       case tok {
         sql_token.Integer(n) -> Some(Integer(n))
-        // sql_token.Real(n) -> Some(float.to_string(n))
+        sql_token.Real(n) -> Some(Real(n))
         _ -> None
       }
     }
@@ -167,6 +167,7 @@ fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
       use tok <- nibble.take_map("name of a datatype")
       case tok {
         sql_token.TypeInteger -> Some(record_value.IntegerType)
+        sql_token.TypeReal -> Some(record_value.RealType)
         sql_token.TypeText -> Some(record_value.TextType)
         _ -> None
       }

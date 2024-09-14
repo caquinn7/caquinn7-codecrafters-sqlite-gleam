@@ -1,7 +1,7 @@
 import gleam/option.{None, Some}
 import gleeunit
 import gleeunit/should
-import record_value.{Integer, IntegerType, Text, TextType}
+import record_value.{Integer, IntegerType, Real, RealType, Text, TextType}
 import sql/sql_statement.{
   ColumnDefinition, Condition, CreateIndex, CreateTable, SelectCount,
   SelectValues, from_string,
@@ -34,12 +34,20 @@ pub fn sql_statement_from_string_select_value_with_single_quoted_table_test() {
   |> should.equal(SelectValues("apples", ["name"], None))
 }
 
+pub fn sql_statement_from_string_select_value_with_single_quoted_column_test() {
+  "SELECT 'name' FROM apples"
+  |> from_string
+  |> should.be_error
+}
+
 pub fn sql_statement_from_string_select_values_test() {
   "SELECT name, color FROM apples"
   |> from_string
   |> should.be_ok
   |> should.equal(SelectValues("apples", ["name", "color"], None))
 }
+
+// SelectValues with Condition
 
 pub fn sql_statement_from_string_select_value_with_where_clause_with_single_quoted_str_test() {
   "SELECT name FROM apples WHERE color = 'Yellow'"
@@ -85,12 +93,12 @@ pub fn sql_statement_from_string_select_value_with_where_clause_with_int_test() 
   ))
 }
 
-// pub fn sql_statement_from_string_select_value_with_where_clause_with_float_test() {
-//   "SELECT x FROM y WHERE z = 1.23"
-//   |> from_string
-//   |> should.be_ok
-//   |> should.equal(SelectValues("y", ["x"], Some(Condition("z", "1.23"))))
-// }
+pub fn sql_statement_from_string_select_value_with_where_clause_with_float_test() {
+  "SELECT x FROM y WHERE z = 1.23"
+  |> from_string
+  |> should.be_ok
+  |> should.equal(SelectValues("y", ["x"], Some(Condition("z", Real(1.23)))))
+}
 
 // SelectCount
 
@@ -107,7 +115,8 @@ pub fn sql_statement_from_string_create_table_test() {
   "CREATE TABLE apples (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
-    is_delicious INTEGER
+    is_delicious INTEGER,
+    weight REAL
   )"
   |> from_string
   |> should.be_ok
@@ -116,6 +125,7 @@ pub fn sql_statement_from_string_create_table_test() {
       ColumnDefinition("id", IntegerType, True, True, False),
       ColumnDefinition("name", TextType, False, False, False),
       ColumnDefinition("is_delicious", IntegerType, False, False, False),
+      ColumnDefinition("weight", RealType, False, False, False),
     ]),
   )
 }
@@ -168,7 +178,7 @@ pub fn sql_statement_from_string_create_table_column_is_primary_key_autoincremen
   )
 }
 
-pub fn sql_statement_from_string_quoted_identifiers_test() {
+pub fn sql_statement_from_string_double_quoted_identifiers_test() {
   "CREATE TABLE \"apples\" (
     \"name\" TEXT,
     \"is delicious\" INTEGER

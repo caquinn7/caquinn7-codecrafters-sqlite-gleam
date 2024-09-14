@@ -12,6 +12,7 @@ pub fn read(stream: FileStream) -> Int {
   result
 }
 
+/// Returns the decoded varint and the number of bytes read in the decoding process
 pub fn read_with_size(stream: FileStream) -> #(Int, Int) {
   do_read(stream, 1, 0)
 }

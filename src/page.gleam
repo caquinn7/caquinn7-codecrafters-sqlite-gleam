@@ -7,6 +7,8 @@ import record_value.{type RecordValue, type RecordValueType, Integer}
 import serial_type.{type SerialType}
 import varint
 
+// https://sqlite.org/fileformat2.html
+
 /// Within an interior b-tree page, each key and the pointer to its immediate left are combined into a structure called a "cell".
 /// The right-most pointer is held separately.
 /// A leaf b-tree page has no pointers, but it still uses the cell structure to hold keys for index b-trees or keys and content for table b-trees.

@@ -1,25 +1,39 @@
 import file_streams/file_stream.{type FileStream, BeginningOfFile}
 import gleam/int
 import gleam/list.{Continue, Stop}
-import gleam/option.{type Option, None, Some}
+import gleam/option.{None, Some}
 import gleam/order.{Eq, Gt}
 import record_value.{type RecordValue, type RecordValueType, Integer}
 import serial_type.{type SerialType}
 import varint
 
+/// Within an interior b-tree page, each key and the pointer to its immediate left are combined into a structure called a "cell".
+/// The right-most pointer is held separately.
+/// A leaf b-tree page has no pointers, but it still uses the cell structure to hold keys for index b-trees or keys and content for table b-trees.
+/// Data is also contained in the cell.
 pub type Page {
-  TableInteriorPage(size: Int, number: Int, cells: List(Cell))
-  IndexInteriorPage(size: Int, number: Int, cells: List(Cell))
+  TableInteriorPage(
+    size: Int,
+    number: Int,
+    cells: List(Cell),
+    right_pointer: Int,
+  )
+  IndexInteriorPage(
+    size: Int,
+    number: Int,
+    cells: List(Cell),
+    right_pointer: Int,
+  )
   TableLeafPage(size: Int, number: Int, cell_pointers: List(Int))
   IndexLeafPage(size: Int, number: Int, cell_pointers: List(Int))
 }
 
-// The cell for the right-most child page has no key
+/// Within an interior b-tree page, each key and the pointer to its immediate left are combined into a structure called a "cell".
 pub type Cell {
-  // For table interior cells, the key is the rowid
-  TableInteriorCell(child_pointer: Int, key: Option(Int))
-  // For index interior cells, the key is a value from the indexed column
-  IndexInteriorCell(child_pointer: Int, key: Option(RecordValue))
+  /// For table interior cells, the key is the rowid
+  TableInteriorCell(child_pointer: Int, key: Int)
+  /// For index interior cells, the key is a value from the indexed column
+  IndexInteriorCell(child_pointer: Int, key: RecordValue)
 }
 
 pub type Record {
@@ -88,7 +102,7 @@ pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
 
       case is_table(page_type_flag) {
         True -> {
-          let left_children =
+          let cells =
             cell_pointers
             |> list.map(fn(pointer) {
               go_to_cell(stream, page_offset, pointer)
@@ -97,18 +111,20 @@ pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
                 file_stream.read_uint32_be(stream)
 
               let key = varint.read(stream)
-              TableInteriorCell(child_page_number, Some(key))
+
+              TableInteriorCell(child_page_number, key)
             })
 
-          let children =
-            left_children
-            |> list.append([TableInteriorCell(right_child_page_number, None)])
-
-          TableInteriorPage(page_size, page_number, children)
+          TableInteriorPage(
+            page_size,
+            page_number,
+            cells,
+            right_child_page_number,
+          )
         }
 
-        False -> {
-          let left_children =
+        _ -> {
+          let cells =
             cell_pointers
             |> list.map(fn(pointer) {
               go_to_cell(stream, page_offset, pointer)
@@ -119,14 +135,16 @@ pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
               let _key_size = varint.read(stream)
               let values = read_record_values(stream)
               let assert Ok(key) = list.first(values)
-              IndexInteriorCell(child_page_number, Some(key))
+
+              IndexInteriorCell(child_page_number, key)
             })
 
-          let children =
-            left_children
-            |> list.append([IndexInteriorCell(right_child_page_number, None)])
-
-          IndexInteriorPage(page_size, page_number, children)
+          IndexInteriorPage(
+            page_size,
+            page_number,
+            cells,
+            right_child_page_number,
+          )
         }
       }
     }
@@ -138,9 +156,12 @@ pub fn count_records(page: Page, stream: FileStream) -> Int {
     TableLeafPage(_, _, cell_pointers) | IndexLeafPage(_, _, cell_pointers) ->
       list.length(cell_pointers)
 
-    TableInteriorPage(_, _, cells) | IndexInteriorPage(_, _, cells) ->
+    TableInteriorPage(size, _, cells, right_pointer)
+    | IndexInteriorPage(size, _, cells, right_pointer) ->
       cells
-      |> list.map(fn(cell) { read(stream, cell.child_pointer, page.size) })
+      |> list.map(fn(cell) { cell.child_pointer })
+      |> list.append([right_pointer])
+      |> list.map(read(stream, _, size))
       |> list.map(count_records(_, stream))
       |> int.sum
   }
@@ -148,11 +169,6 @@ pub fn count_records(page: Page, stream: FileStream) -> Int {
 
 pub fn read_records(page: Page, stream: FileStream) -> List(Record) {
   case page {
-    TableInteriorPage(_, _, cells) | IndexInteriorPage(_, _, cells) ->
-      cells
-      |> list.map(fn(cell) { read(stream, cell.child_pointer, page.size) })
-      |> list.flat_map(read_records(_, stream))
-
     TableLeafPage(size, number, cell_pointers) ->
       list.map(cell_pointers, fn(pointer) {
         go_to_cell(stream, calculate_page_offset(number, size), pointer)
@@ -162,14 +178,21 @@ pub fn read_records(page: Page, stream: FileStream) -> List(Record) {
         TableRecord(values, rowid)
       })
 
-    IndexLeafPage(size, number, cell_pointers) -> {
+    IndexLeafPage(size, number, cell_pointers) ->
       list.map(cell_pointers, fn(pointer) {
         go_to_cell(stream, calculate_page_offset(number, size), pointer)
         let _payload_size = varint.read(stream)
         let values = read_record_values(stream)
         IndexRecord(values)
       })
-    }
+
+    TableInteriorPage(size, _, cells, right_pointer)
+    | IndexInteriorPage(size, _, cells, right_pointer) ->
+      cells
+      |> list.map(fn(cell) { cell.child_pointer })
+      |> list.append([right_pointer])
+      |> list.map(read(stream, _, size))
+      |> list.flat_map(read_records(_, stream))
   }
 }
 
@@ -180,28 +203,6 @@ pub fn find_records(
   key_type: RecordValueType,
 ) -> List(Record) {
   case page {
-    TableInteriorPage(size, _, cells) | IndexInteriorPage(size, _, cells) -> {
-      let assert Ok(first_cell) = list.first(cells)
-      let assert Ok(rest) = list.rest(cells)
-
-      // For any key X, pointers to the left of a X refer to b-tree pages on which all keys are less than or equal to X.
-      // Pointers to the right of X refer to pages where all keys are greater than X.
-      rest
-      |> list.fold_until(first_cell, fn(prev_cell, curr_cell) {
-        let assert Some(prev_key) = case prev_cell {
-          TableInteriorCell(_, k) -> option.map(k, Integer)
-          IndexInteriorCell(_, k) -> k
-        }
-        case record_value.compare(target_key, prev_key, key_type) {
-          Ok(Gt) -> Continue(curr_cell)
-          Ok(_) -> Stop(prev_cell)
-          _ -> panic
-        }
-      })
-      |> fn(cell: Cell) { read(stream, cell.child_pointer, size) }
-      |> find_records(stream, target_key, key_type)
-    }
-
     TableLeafPage(size, number, cell_pointers) -> {
       let assert Integer(target_rowid) = target_key
 
@@ -230,6 +231,39 @@ pub fn find_records(
           _ -> Error(Nil)
         }
       })
+
+    TableInteriorPage(size, _, cells, right_pointer)
+    | IndexInteriorPage(size, _, cells, right_pointer) -> {
+      let pointers =
+        cells
+        |> list.map(fn(cell) {
+          case cell {
+            TableInteriorCell(pointer, key) -> #(pointer, Some(Integer(key)))
+            IndexInteriorCell(pointer, key) -> #(pointer, Some(key))
+          }
+        })
+        |> list.append([#(right_pointer, None)])
+
+      let assert Ok(first_pointer) = list.first(pointers)
+      let assert Ok(rest) = list.rest(pointers)
+
+      // For any key X, pointers to the left of a X refer to b-tree pages on which all keys are less than or equal to X.
+      // Pointers to the right of X refer to pages where all keys are greater than X.
+      rest
+      |> list.fold_until(first_pointer, fn(prev, curr) {
+        let assert #(_, Some(key)) = prev
+        case record_value.compare(target_key, key, key_type) {
+          Ok(Gt) -> Continue(curr)
+          Ok(_) -> Stop(prev)
+          _ -> panic
+        }
+      })
+      |> fn(pointer) {
+        let #(next_page_num, _) = pointer
+        read(stream, next_page_num, size)
+      }
+      |> find_records(stream, target_key, key_type)
+    }
   }
 }
 

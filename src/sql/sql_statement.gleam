@@ -1,6 +1,7 @@
 import db_info
 import file_streams/file_stream.{type FileStream}
 import gleam/int
+import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/regex
@@ -63,63 +64,78 @@ pub fn from_string(input: String) -> Result(SqlStatement, Nil) {
     input
     |> to_lowercase
     |> lexer.run(sql_token.lexer())
+    |> result.map_error(io.debug)
     |> result.replace_error(Nil),
   )
   use statement <- result.try(
     tokens
     |> nibble.run(sql_parser())
+    |> result.map_error(io.debug)
     |> result.replace_error(Nil),
   )
   Ok(statement)
 }
 
 fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
-  let identifier_parser = {
-    let identifier_parser_no_quotes = {
-      use tok <- nibble.take_map("expected string")
-      case tok {
-        sql_token.Identifier(str) -> Some(str)
-        _ -> None
-      }
+  let identifier_no_quotes_parser = {
+    use tok <- nibble.take_map("identifier")
+    case tok {
+      sql_token.Identifier(s) -> Some(s)
+      _ -> None
     }
+  }
 
-    let quoted_identifier_parser = {
-      use tok <- nibble.take_map("expecting string")
-      case tok {
-        sql_token.DoubleQuotedString(str) -> Some(str)
-        _ -> None
-      }
+  let identifier_double_quoted_parser = {
+    use tok <- nibble.take_map("string with double quotes")
+    case tok {
+      sql_token.StringDoubleQuoted(s) -> Some(s)
+      _ -> None
     }
+  }
 
+  let identifier_single_quoted_parser = {
+    use tok <- nibble.take_map("string with single quotes")
+    case tok {
+      sql_token.StringSingleQuoted(s) -> Some(s)
+      _ -> None
+    }
+  }
+
+  let column_name_parser = {
+    one_of([identifier_no_quotes_parser, identifier_double_quoted_parser])
+  }
+
+  let table_name_parser = {
     one_of([
-      backtrackable(identifier_parser_no_quotes),
-      quoted_identifier_parser,
+      identifier_no_quotes_parser,
+      identifier_single_quoted_parser,
+      identifier_double_quoted_parser,
     ])
   }
 
   let select_count_parser = {
     use _ <- do(token(sql_token.Select))
     use _ <- do(token(sql_token.Count))
-    use _ <- do(token(sql_token.LParen))
+    use _ <- do(token(sql_token.ParenL))
     use _ <- do(token(sql_token.Asterisk))
-    use _ <- do(token(sql_token.RParen))
+    use _ <- do(token(sql_token.ParenR))
     use _ <- do(token(sql_token.From))
-    use target_table_name <- do(identifier_parser)
+    use target_table_name <- do(table_name_parser)
     return(SelectCount(target_table_name))
   }
 
   let condition_parser = {
     let str_parser = {
-      use tok <- nibble.take_map("expected string")
+      use tok <- nibble.take_map("string with either double or single quotes")
       case tok {
-        sql_token.SingleQuotedString(s) -> Some(Text(s))
-        sql_token.DoubleQuotedString(s) -> Some(Text(s))
+        sql_token.StringSingleQuoted(s) -> Some(Text(s))
+        sql_token.StringDoubleQuoted(s) -> Some(Text(s))
         _ -> None
       }
     }
 
     let num_parser = {
-      use tok <- nibble.take_map("expected an integer or a float")
+      use tok <- nibble.take_map("integer")
       case tok {
         sql_token.Integer(n) -> Some(Integer(n))
         // sql_token.Real(n) -> Some(float.to_string(n))
@@ -128,7 +144,7 @@ fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
     }
 
     use _ <- do(token(sql_token.Where))
-    use col <- do(identifier_parser)
+    use col <- do(column_name_parser)
     use _ <- do(token(sql_token.Equals))
     use val <- do(one_of([str_parser, num_parser]))
     return(Condition(col, val))
@@ -137,27 +153,27 @@ fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
   let select_values_parser = {
     use _ <- do(token(sql_token.Select))
     use target_column_names <- do(sequence(
-      identifier_parser,
+      column_name_parser,
       token(sql_token.Comma),
     ))
     use _ <- do(token(sql_token.From))
-    use target_table_name <- do(identifier_parser)
+    use target_table_name <- do(table_name_parser)
     use cond <- do(optional(condition_parser))
     return(SelectValues(target_table_name, target_column_names, cond))
   }
 
   let create_table_parser = {
     let data_type_parser = {
-      use tok <- nibble.take_map("expected string")
+      use tok <- nibble.take_map("name of a datatype")
       case tok {
-        sql_token.IntegerType -> Some(record_value.IntegerType)
-        sql_token.TextType -> Some(record_value.TextType)
+        sql_token.TypeInteger -> Some(record_value.IntegerType)
+        sql_token.TypeText -> Some(record_value.TextType)
         _ -> None
       }
     }
 
     let column_definition_parser = {
-      use name <- do(identifier_parser)
+      use name <- do(column_name_parser)
       use data_type <- do(data_type_parser)
       use is_pk <- do(map(optional(token(sql_token.PrimaryKey)), option.is_some))
       use is_auto_incr <- do(map(
@@ -173,25 +189,25 @@ fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
 
     use _ <- do(token(sql_token.Create))
     use _ <- do(token(sql_token.Table))
-    use target_table_name <- do(identifier_parser)
-    use _ <- do(token(sql_token.LParen))
+    use target_table_name <- do(table_name_parser)
+    use _ <- do(token(sql_token.ParenL))
     use column_definitions <- do(sequence(
       column_definition_parser,
       token(sql_token.Comma),
     ))
-    use _ <- do(token(sql_token.RParen))
+    use _ <- do(token(sql_token.ParenR))
     return(CreateTable(target_table_name, column_definitions))
   }
 
   let create_index_parser = {
     use _ <- do(token(sql_token.Create))
     use _ <- do(token(sql_token.Index))
-    use _index_name <- do(identifier_parser)
+    use _index_name <- do(table_name_parser)
     use _ <- do(token(sql_token.On))
-    use target_table_name <- do(identifier_parser)
-    use _ <- do(token(sql_token.LParen))
-    use column_name <- do(identifier_parser)
-    use _ <- do(token(sql_token.RParen))
+    use target_table_name <- do(table_name_parser)
+    use _ <- do(token(sql_token.ParenL))
+    use column_name <- do(column_name_parser)
+    use _ <- do(token(sql_token.ParenR))
     return(CreateIndex(target_table_name, column_name))
   }
 

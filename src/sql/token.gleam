@@ -7,25 +7,23 @@ pub type SqlToken {
   Comma
   Count
   Create
-  DoubleQuote
   Equals
   From
   Index
   Identifier(String)
-  IdentifierQuoted(String)
   Integer(Int)
-  IntegerType
-  LParen
   NotNull
   On
+  ParenL
+  ParenR
   PrimaryKey
   Real(Float)
-  RParen
   Select
-  SingleQuotedString(String)
-  DoubleQuotedString(String)
+  StringDoubleQuoted(String)
+  StringSingleQuoted(String)
   Table
-  TextType
+  TypeInteger
+  TypeText
   Where
 }
 
@@ -34,23 +32,23 @@ pub fn lexer() {
     lexer.token("*", Asterisk),
     lexer.token(",", Comma),
     lexer.token("=", Equals),
-    lexer.token("(", LParen),
-    lexer.token(")", RParen),
+    lexer.token("(", ParenL),
+    lexer.token(")", ParenR),
     lexer.keyword("autoincrement", "\\s+|,|\\)", AutoIncrement),
     lexer.keyword("count", "\\(", Count),
     lexer.keyword("create", " ", Create),
     lexer.keyword("from", " ", From),
     lexer.keyword("index", " ", Index),
-    lexer.keyword("integer", "\\s+|,|\\)", IntegerType),
+    lexer.keyword("integer", "\\s+|,|\\)", TypeInteger),
     lexer.keyword("not null", "\\s+|,|\\)", NotNull),
     lexer.keyword("on", " ", On),
     lexer.keyword("primary key", "\\s+|,|\\)", PrimaryKey),
     lexer.keyword("select", " ", Select),
     lexer.keyword("table", " ", Table),
-    lexer.keyword("text", "\\s+|,|\\)", TextType),
+    lexer.keyword("text", "\\s+|,|\\)", TypeText),
     lexer.keyword("where", " ", Where),
-    lexer.string("'", SingleQuotedString),
-    lexer.string("\"", DoubleQuotedString),
+    lexer.string("'", StringSingleQuoted),
+    lexer.string("\"", StringDoubleQuoted),
     lexer.number(Integer, Real),
     lexer.identifier(
       "[a-z_]",

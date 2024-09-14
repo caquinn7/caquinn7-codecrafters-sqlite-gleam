@@ -20,8 +20,15 @@ pub fn sql_statement_from_string_select_value_test() {
   |> should.equal(SelectValues("apples", ["name"], None))
 }
 
-pub fn sql_statement_from_string_select_value_with_quoted_identifiers_test() {
+pub fn sql_statement_from_string_select_value_with_double_quoted_identifiers_test() {
   "SELECT \"name\" FROM \"apples\""
+  |> from_string
+  |> should.be_ok
+  |> should.equal(SelectValues("apples", ["name"], None))
+}
+
+pub fn sql_statement_from_string_select_value_with_single_quoted_table_test() {
+  "SELECT name FROM 'apples'"
   |> from_string
   |> should.be_ok
   |> should.equal(SelectValues("apples", ["name"], None))

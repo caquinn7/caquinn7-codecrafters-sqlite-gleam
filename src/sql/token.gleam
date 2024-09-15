@@ -22,6 +22,7 @@ pub type SqlToken {
   StringDoubleQuoted(String)
   StringSingleQuoted(String)
   Table
+  TypeBlob
   TypeInteger
   TypeReal
   TypeText
@@ -36,6 +37,7 @@ pub fn lexer() {
     lexer.token("(", ParenL),
     lexer.token(")", ParenR),
     lexer.keyword("autoincrement", "\\s+|,|\\)", AutoIncrement),
+    lexer.keyword("blob", "\\s+|,|\\)", TypeBlob),
     lexer.keyword("count", "\\(", Count),
     lexer.keyword("create", " ", Create),
     lexer.keyword("from", " ", From),
@@ -55,7 +57,7 @@ pub fn lexer() {
     lexer.identifier(
       "[a-z_]",
       "[a-zA-Z0-9_]",
-      set.from_list(["integer", "text", "primary", "boolean", "not"]),
+      set.from_list(["primary", "not"]),
       Identifier,
     ),
     lexer.whitespace(Nil) |> lexer.ignore,

@@ -1,6 +1,7 @@
 import commands
 import db_info.{DbInfo}
 import gleam/list
+import gleam/string
 import gleeunit
 import gleeunit/should
 import record_value.{Null}
@@ -25,9 +26,8 @@ pub fn db_info_command_leaf_schema_test() {
 
 pub fn db_info_command_interior_schema_test() {
   let expected_table_count = 50
-  use sql_file <- utils.do_with_file(utils.generate_create_tables_sql(
-    expected_table_count,
-  ))
+  let sql = utils.generate_create_tables_sql(expected_table_count)
+  use sql_file <- utils.do_with_file(sql)
   use stream <- utils.do_with_temp_db2(sql_file)
 
   stream
@@ -95,6 +95,21 @@ pub fn run_sql_command_select_values_test() {
     ["Anderson", "71000", "4.6"],
     ["Thomas", "69000", "3.4"],
     ["Martinez", "73000", "0.5"],
+  ])
+}
+
+pub fn run_sql_command_select_values_blob_test() {
+  use stream <- utils.do_with_temp_db2(utils.test_sql_file)
+  "SELECT last_name, photo FROM employees"
+  |> sql_statement.from_string
+  |> should.be_ok
+  |> commands.run_sql(stream, _)
+  |> result_set.unwrap
+  |> list.find(fn(row) { list.any(row, fn(col) { col == "Doe" }) })
+  |> should.be_ok
+  |> should.equal([
+    "Doe",
+    string.inspect(<<"this is where the photo bits would be":utf8>>),
   ])
 }
 

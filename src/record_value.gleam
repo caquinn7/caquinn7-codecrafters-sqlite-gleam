@@ -13,7 +13,7 @@ import serial_type.{type SerialType}
 pub type RecordValue {
   Integer(Int)
   Real(Float)
-  // Blob(BitArray)
+  Blob(BitArray)
   Text(String)
   Null
 }
@@ -21,6 +21,7 @@ pub type RecordValue {
 pub type RecordValueType {
   IntegerType
   RealType
+  BlobType
   TextType
 }
 
@@ -41,7 +42,10 @@ pub fn read(stream: FileStream, serial_type: SerialType) -> RecordValue {
     }
     serial_type.Zero -> Integer(0)
     serial_type.One -> Integer(1)
-    serial_type.BlobType(_byte_size) -> todo
+    serial_type.BlobType(byte_size) -> {
+      let assert Ok(bytes) = file_stream.read_bytes_exact(stream, byte_size)
+      Blob(bytes)
+    }
     serial_type.TextType(byte_size) -> {
       let assert Ok(bytes) = file_stream.read_bytes_exact(stream, byte_size)
       let assert Ok(str) = bit_array.to_string(bytes)
@@ -52,9 +56,9 @@ pub fn read(stream: FileStream, serial_type: SerialType) -> RecordValue {
 
 pub fn to_string(record_value: RecordValue) -> String {
   case record_value {
-    Integer(n) -> int.to_string(n)
-    Real(n) -> float.to_string(n)
-    // Blob(bytes) -> bytes |> string.inspect
+    Integer(num) -> int.to_string(num)
+    Real(num) -> float.to_string(num)
+    Blob(bytes) -> string.inspect(bytes)
     Text(str) -> str
     Null -> ""
   }
@@ -76,6 +80,14 @@ pub fn compare(
   let unwrap_real = fn(wrapped) {
     case wrapped {
       Real(f) -> Ok(Some(f))
+      Null -> Ok(None)
+      _ -> Error(Nil)
+    }
+  }
+
+  let unwrap_bytes = fn(wrapped) {
+    case wrapped {
+      Blob(b) -> Ok(Some(b))
       Null -> Ok(None)
       _ -> Error(Nil)
     }
@@ -117,6 +129,18 @@ pub fn compare(
       |> Ok
     }
 
+    BlobType -> {
+      use first <- result.try(unwrap_bytes(first))
+      use second <- result.try(unwrap_bytes(second))
+      case first, second {
+        None, None -> Eq
+        Some(_), None -> Gt
+        None, Some(_) -> Lt
+        Some(b1), Some(b2) -> compare_bit_arrays(b1, b2)
+      }
+      |> Ok
+    }
+
     TextType -> {
       use first <- result.try(unwrap_text(first))
       use second <- result.try(unwrap_text(second))
@@ -128,5 +152,19 @@ pub fn compare(
       }
       |> Ok
     }
+  }
+}
+
+fn compare_bit_arrays(b1, b2) -> Order {
+  case b1, b2 {
+    <<>>, <<>> -> Eq
+    <<_:bits>>, <<>> -> Gt
+    <<>>, <<_:bits>> -> Lt
+    <<x:int, xs:bits>>, <<y:int, ys:bits>> ->
+      case int.compare(x, y) {
+        Eq -> compare_bit_arrays(xs, ys)
+        order -> order
+      }
+    _, _ -> panic as "are both args byte-aligned?"
   }
 }

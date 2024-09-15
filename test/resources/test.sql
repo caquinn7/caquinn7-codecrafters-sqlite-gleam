@@ -22,12 +22,13 @@ CREATE TABLE employees (
     first_name TEXT,
     last_name TEXT,
     salary INTEGER,
-    performance_score REAL
+    performance_score REAL,
+    photo BLOB
 );
 
 CREATE INDEX idx_last_name ON employees(last_name);
 
-INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('John', 'Doe', 60000, 3.8);
+INSERT INTO employees (first_name, last_name, salary, performance_score, photo) VALUES ('John', 'Doe', 60000, 3.8, x'74686973206973207768657265207468652070686F746F206269747320776F756C64206265');
 INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Jane', 'Smith', 65000, 1.2);
 INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Michael', 'Johnson', 70000, 2.7);
 INSERT INTO employees (first_name, last_name, salary, performance_score) VALUES ('Emily', 'Davis', 72000, 4.2);

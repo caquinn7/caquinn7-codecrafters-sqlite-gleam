@@ -1,7 +1,9 @@
 import gleam/option.{None, Some}
 import gleeunit
 import gleeunit/should
-import record_value.{Integer, IntegerType, Real, RealType, Text, TextType}
+import record_value.{
+  BlobType, Integer, IntegerType, Real, RealType, Text, TextType,
+}
 import sql/sql_statement.{
   ColumnDefinition, Condition, CreateIndex, CreateTable, SelectCount,
   SelectValues, from_string,
@@ -116,7 +118,8 @@ pub fn sql_statement_from_string_create_table_test() {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     is_delicious INTEGER,
-    weight REAL
+    weight REAL,
+    photo BLOB
   )"
   |> from_string
   |> should.be_ok
@@ -126,6 +129,7 @@ pub fn sql_statement_from_string_create_table_test() {
       ColumnDefinition("name", TextType, False, False, False),
       ColumnDefinition("is_delicious", IntegerType, False, False, False),
       ColumnDefinition("weight", RealType, False, False, False),
+      ColumnDefinition("photo", BlobType, False, False, False),
     ]),
   )
 }

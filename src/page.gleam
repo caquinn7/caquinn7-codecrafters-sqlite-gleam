@@ -33,7 +33,7 @@ pub type Page {
 /// Within an interior b-tree page, each key and the pointer to its immediate left are combined into a structure called a "cell".
 pub type Cell {
   /// For table interior cells, the key is the rowid
-  TableInteriorCell(child_pointer: Int, key: Int)
+  TableInteriorCell(child_pointer: Int, key: RecordValue)
   /// For index interior cells, the key is a value from the indexed column
   IndexInteriorCell(child_pointer: Int, key: RecordValue)
 }
@@ -44,7 +44,7 @@ pub type Cell {
 /// Following the size varint are one or more additional varints, one per column.
 /// These additional varints are called "serial type" numbers and determine the datatype of each column
 pub type Record {
-  TableRecord(values: List(RecordValue), rowid: Int)
+  TableRecord(values: List(RecordValue), rowid: RecordValue)
   IndexRecord(values: List(RecordValue))
 }
 
@@ -119,7 +119,7 @@ pub fn read(stream: FileStream, page_number: Int, page_size: Int) -> Page {
 
               let key = varint.read(stream)
 
-              TableInteriorCell(child_page_number, key)
+              TableInteriorCell(child_page_number, Integer(key))
             })
 
           TableInteriorPage(
@@ -182,7 +182,7 @@ pub fn read_records(page: Page, stream: FileStream) -> List(Record) {
         let _payload_size = varint.read(stream)
         let rowid = varint.read(stream)
         let values = read_record_values(stream)
-        TableRecord(values, rowid)
+        TableRecord(values, Integer(rowid))
       })
 
     IndexLeafPage(size, number, cell_pointers) ->
@@ -220,7 +220,7 @@ pub fn find_records(
         case rowid == target_rowid {
           True -> {
             let values = read_record_values(stream)
-            Ok(TableRecord(values, rowid))
+            Ok(TableRecord(values, Integer(rowid)))
           }
           _ -> Error(Nil)
         }
@@ -243,12 +243,7 @@ pub fn find_records(
     | IndexInteriorPage(size, _, cells, right_pointer) -> {
       let pointers =
         cells
-        |> list.map(fn(cell) {
-          case cell {
-            TableInteriorCell(pointer, key) -> #(pointer, Some(Integer(key)))
-            IndexInteriorCell(pointer, key) -> #(pointer, Some(key))
-          }
-        })
+        |> list.map(fn(cell) { #(cell.child_pointer, Some(cell.key)) })
         |> list.append([#(right_pointer, None)])
 
       let assert Ok(first_pointer) = list.first(pointers)
@@ -318,10 +313,9 @@ fn read_record_header(
     _ -> {
       let #(serial_type_code, code_size) = varint.read_with_size(stream)
       let serial_type = serial_type.from_code(serial_type_code)
-      read_record_header(stream, bytes_remaining - code_size, [
-        serial_type,
-        ..acc
-      ])
+      let bytes_remaining = bytes_remaining - code_size
+      let acc = [serial_type, ..acc]
+      read_record_header(stream, bytes_remaining, acc)
     }
   }
 }

@@ -168,6 +168,7 @@ fn sql_parser() -> Parser(SqlStatement, sql_token.SqlToken, a) {
       case tok {
         sql_token.TypeInteger -> Some(record_value.IntegerType)
         sql_token.TypeReal -> Some(record_value.RealType)
+        sql_token.TypeBlob -> Some(record_value.BlobType)
         sql_token.TypeText -> Some(record_value.TextType)
         _ -> None
       }
@@ -335,8 +336,7 @@ fn execute_select_values(
               _ -> {
                 list.filter(records, fn(record) {
                   let assert TableRecord(_, rowid) = record
-                  let assert Integer(val) = condition_val
-                  rowid == val
+                  rowid == condition_val
                 })
               }
             }
@@ -360,7 +360,7 @@ fn filter_columns(records: List(Record), target_column_indices: List(Int)) {
       }
       _ -> {
         let assert TableRecord(_, rowid) = record
-        int.to_string(rowid)
+        record_value.to_string(rowid)
       }
     }
   }

@@ -66,7 +66,6 @@ pub fn do_with_file(file_content, do: fn(String) -> a) {
 /// and call a function that takes the stream as an argument.
 /// The database is automatically deleted when this function is over.
 pub fn do_with_temp_db2(sql_path, do: fn(FileStream) -> a) {
-  // use file <- temporary.create(temporary.file())
   let assert Ok(_) =
     temporary.create(temporary.file(), fn(file) {
       do_with_temp_db3(file, sql_path, do)

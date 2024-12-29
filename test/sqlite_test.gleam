@@ -1,7 +1,7 @@
 import gleeunit
 import gleeunit/should
-import result_set
 import sqlite
+import sqlite/result_set
 import temporary
 import utils
 

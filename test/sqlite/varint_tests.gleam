@@ -2,8 +2,8 @@ import file_streams/file_stream.{type FileStream}
 import gleam/list
 import gleeunit
 import gleeunit/should
+import sqlite/varint
 import temporary
-import varint
 
 pub fn main() {
   gleeunit.main()

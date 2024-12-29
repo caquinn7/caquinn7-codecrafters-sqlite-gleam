@@ -1,12 +1,12 @@
-import commands
-import db_info.{DbInfo}
 import gleam/list
 import gleam/string
 import gleeunit
 import gleeunit/should
-import record_value.{Null}
-import result_set
-import sql/sql_statement
+import sqlite/commands
+import sqlite/db_info.{DbInfo}
+import sqlite/record_value.{Null}
+import sqlite/result_set
+import sqlite/sql/sql_statement
 import utils
 
 pub fn main() {

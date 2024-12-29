@@ -1,13 +1,13 @@
 import argv
-import commands
-import db_info
 import file_streams/file_stream
 import gleam/io
 import gleam/list
 import gleam/result
 import gleam/string
-import result_set
-import sql/sql_statement
+import sqlite/commands
+import sqlite/db_info
+import sqlite/result_set
+import sqlite/sql/sql_statement
 
 pub fn main() {
   let args = argv.load().arguments

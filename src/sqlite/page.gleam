@@ -3,9 +3,9 @@ import gleam/int
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/order.{Eq, Gt}
-import record_value.{type RecordValue, type RecordValueType, Integer}
-import serial_type.{type SerialType}
-import varint
+import sqlite/record_value.{type RecordValue, type RecordValueType, Integer}
+import sqlite/serial_type.{type SerialType}
+import sqlite/varint
 
 // https://sqlite.org/fileformat2.html
 

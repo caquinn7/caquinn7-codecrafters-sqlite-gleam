@@ -5,7 +5,7 @@ import gleam/int
 import gleam/iterator
 import gleam/string
 import gluid
-import page.{IndexInteriorPage, TableInteriorPage}
+import sqlite/page.{IndexInteriorPage, TableInteriorPage}
 import temporary
 
 pub const resources_dir = "test/resources/"

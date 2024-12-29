@@ -1,8 +1,8 @@
 import file_streams/file_stream.{type FileStream, BeginningOfFile}
 import gleam/int
 import gleam/list
-import page.{TableRecord}
-import record_value.{Text}
+import sqlite/page.{TableRecord}
+import sqlite/record_value.{Text}
 
 pub type DbInfo {
   DbInfo(page_size: Int, table_count: Int)

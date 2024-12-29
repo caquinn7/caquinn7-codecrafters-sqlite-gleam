@@ -1,11 +1,11 @@
-import db_info.{type DbInfo}
 import file_streams/file_stream.{type FileStream}
 import gleam/list
 import gleam/string
-import page.{TableRecord}
-import record_value.{Text}
-import result_set.{type ResultSet}
-import sql/sql_statement.{type SqlStatement}
+import sqlite/db_info.{type DbInfo}
+import sqlite/page.{TableRecord}
+import sqlite/record_value.{Text}
+import sqlite/result_set.{type ResultSet}
+import sqlite/sql/sql_statement.{type SqlStatement}
 
 pub fn db_info(stream: FileStream) -> DbInfo {
   stream

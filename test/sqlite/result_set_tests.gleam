@@ -1,6 +1,6 @@
 import gleeunit
 import gleeunit/should
-import result_set
+import sqlite/result_set
 
 pub fn main() {
   gleeunit.main()

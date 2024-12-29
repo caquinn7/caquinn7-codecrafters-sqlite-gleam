@@ -6,7 +6,7 @@ import gleam/option.{None, Some}
 import gleam/order.{type Order, Eq, Gt, Lt}
 import gleam/result
 import gleam/string
-import serial_type.{type SerialType}
+import sqlite/serial_type.{type SerialType}
 
 // https://sqlite.org/datatype3.html
 

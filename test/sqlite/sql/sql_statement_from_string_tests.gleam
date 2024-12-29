@@ -1,10 +1,10 @@
 import gleam/option.{None, Some}
 import gleeunit
 import gleeunit/should
-import record_value.{
+import sqlite/record_value.{
   BlobType, Integer, IntegerType, Real, RealType, Text, TextType,
 }
-import sql/sql_statement.{
+import sqlite/sql/sql_statement.{
   ColumnDefinition, Condition, CreateIndex, CreateTable, SelectCount,
   SelectValues, from_string,
 }

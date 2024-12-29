@@ -1,7 +1,9 @@
 import gleam/order.{Eq, Gt, Lt}
 import gleeunit
 import gleeunit/should
-import record_value.{Blob, BlobType, Integer, IntegerType, Null, Text, compare}
+import sqlite/record_value.{
+  Blob, BlobType, Integer, IntegerType, Null, Text, compare,
+}
 
 pub fn main() {
   gleeunit.main()

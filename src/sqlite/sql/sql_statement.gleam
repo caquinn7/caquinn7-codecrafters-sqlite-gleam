@@ -1,4 +1,3 @@
-import db_info
 import file_streams/file_stream.{type FileStream}
 import gleam/int
 import gleam/io
@@ -7,15 +6,18 @@ import gleam/option.{type Option, None, Some}
 import gleam/regex
 import gleam/result
 import gleam/string
-import list_utils
 import nibble.{
   type Parser, backtrackable, do, map, one_of, optional, return, sequence, token,
 }
 import nibble/lexer
-import page.{type Record, IndexRecord, TableRecord}
-import record_value.{type RecordValue, type RecordValueType, Integer, Real, Text}
-import result_set.{type ResultSet}
-import sql/token as sql_token
+import sqlite/db_info
+import sqlite/list_utils
+import sqlite/page.{type Record, IndexRecord, TableRecord}
+import sqlite/record_value.{
+  type RecordValue, type RecordValueType, Integer, Real, Text,
+}
+import sqlite/result_set.{type ResultSet}
+import sqlite/sql/token as sql_token
 
 pub type SqlStatement {
   SelectCount(table: String)
